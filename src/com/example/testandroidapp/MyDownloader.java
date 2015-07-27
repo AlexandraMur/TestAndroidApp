@@ -13,6 +13,11 @@ public class MyDownloader implements Runnable {
 	private static final int BUFFER_SIZE = 4096;
 	private String mUrl;
 	
+	
+	static {
+		System.loadLibrary("callbacks");
+	}
+	
 	private native void writeCallback(byte buffer[], Integer size);
 	private native void progressCallback(Integer sizeTotal, Integer sizeCurr);
 	
