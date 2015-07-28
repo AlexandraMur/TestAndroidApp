@@ -45,14 +45,19 @@ public class MyDownloader implements Runnable {
 	    	ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
 	        
 	        int bytesRead = -1;
+	        int allBytes = 0;
+	        
 	        byte[] buffer = new byte[BUFFER_SIZE];
 	        while ((bytesRead = inputStream.read(buffer)) != -1) {
+	        	allBytes += bytesRead;
 	            outputStream.write(buffer, 0, bytesRead);
-	            Log.d(TAG, "DOWNLOADING");
+	            progressCallback(null, allBytes);
+	            //Log.d(TAG, "DOWNLOADING");
 	        }
 	        
 	        outputStream.close();
 	        Log.d(TAG, outputStream.toString());
+	        writeCallback(null, allBytes);
 	        
 	        inputStream.close();
 			connection.disconnect();
