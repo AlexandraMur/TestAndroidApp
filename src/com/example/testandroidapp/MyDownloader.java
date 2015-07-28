@@ -26,6 +26,7 @@ public class MyDownloader implements Runnable {
 	}
 	
 	private void download(String sUrl) {
+		
 		try {
 			URL url = new URL(sUrl);
 			HttpURLConnection connection = (HttpURLConnection)url.openConnection();
@@ -66,6 +67,7 @@ public class MyDownloader implements Runnable {
         } catch (Exception err) {
         	Log.e(TAG, err.toString());
         }
+       
 	}
 
 	@Override
