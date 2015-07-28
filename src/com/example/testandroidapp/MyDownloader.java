@@ -18,8 +18,8 @@ public class MyDownloader implements Runnable {
 		System.loadLibrary("callbacks");
 	}
 	
-	private native void writeCallback(byte buffer[], Integer size);
-	private native void progressCallback(Integer sizeTotal, Integer sizeCurr);
+	private native void writeCallback(byte buffer[], int size);
+	private native void progressCallback(int sizeTotal, int sizeCurr);
 	
 	MyDownloader() {
 		mUrl = null;
@@ -30,6 +30,8 @@ public class MyDownloader implements Runnable {
 		try {
 			URL url = new URL(sUrl);
 			HttpURLConnection connection = (HttpURLConnection)url.openConnection();
+			//throws exception. rewrite
+			//int contentLength = (int)Long.parseLong(connection.getHeaderField("Content-Length"));
 			connection.setConnectTimeout(1000 * 2);
 			connection.setReadTimeout(1000 * 2);
 	        connection.connect();
@@ -45,19 +47,17 @@ public class MyDownloader implements Runnable {
 	    	ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
 	        
 	        int bytesRead = -1;
-	        int allBytes = 0;
+	        int currentBytes = 0;
 	        
 	        byte[] buffer = new byte[BUFFER_SIZE];
 	        while ((bytesRead = inputStream.read(buffer)) != -1) {
-	        	allBytes += bytesRead;
+	        	currentBytes += bytesRead;
 	            outputStream.write(buffer, 0, bytesRead);
-	            progressCallback(null, allBytes);
-	            //Log.d(TAG, "DOWNLOADING");
+	            progressCallback(/*contentLength*/0, currentBytes);
 	        }
 	        
 	        outputStream.close();
-	        Log.d(TAG, outputStream.toString());
-	        writeCallback(null, allBytes);
+	        writeCallback(outputStream.toByteArray(), currentBytes);
 	        
 	        inputStream.close();
 			connection.disconnect();
