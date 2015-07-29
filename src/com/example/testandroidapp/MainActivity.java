@@ -10,12 +10,18 @@ public class MainActivity extends Activity{
 	private MyDownloader mDownloader;
 	private static final String TAG = "MainActivity";
 	
+	static {
+		System.loadLibrary("test");
+	}
+	
+	private native void nativeTest();
+	
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		setContentView(com.example.testandroidapp.R.layout.activity_main);
 		
-		View button1 = findViewById(R.id.button1);
+		View button1 = findViewById(com.example.testandroidapp.R.id.button1);
 		button1.setOnClickListener(new View.OnClickListener() {
 			@Override
 			public void onClick(View v) {
