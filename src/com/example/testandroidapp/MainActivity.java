@@ -1,23 +1,27 @@
 package com.example.testandroidapp;
 
-import android.R;
 import android.app.Activity;
 import android.os.Bundle;
-import com.example.testandroidapp.MyDownloader;
+import android.util.Log;
+import android.view.View;
 
-public class MainActivity extends Activity {
+public class MainActivity extends Activity{
 	private Thread mThread;
 	private MyDownloader mDownloader;
+	private static final String TAG = "MainActivity";
 	
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
-		setContentView(R.layout.activity_list_item);
+		setContentView(com.example.testandroidapp.R.layout.activity_main);
 		
-		mDownloader = new MyDownloader();
-		mDownloader.setUrl("https://ru.wikipedia.org/wiki/SSE2");
-		
-		mThread = new Thread(mDownloader);
-		mThread.start();
+		View button1 = findViewById(R.id.button1);
+		button1.setOnClickListener(new View.OnClickListener() {
+			@Override
+			public void onClick(View v) {
+				Log.d(TAG, "Button pushed");
+			}
+		});
 	}
+	
 }
