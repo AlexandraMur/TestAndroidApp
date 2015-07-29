@@ -15,7 +15,7 @@ public class MainActivity extends Activity {
 		setContentView(R.layout.activity_list_item);
 		
 		mDownloader = new MyDownloader();
-		mDownloader.setUrl("http://stackoverflow.com/questions/2250112/why-doesnt-logcat-show-anything-in-my-android");
+		mDownloader.setUrl("https://ru.wikipedia.org/wiki/SSE2");
 		
 		mThread = new Thread(mDownloader);
 		mThread.start();

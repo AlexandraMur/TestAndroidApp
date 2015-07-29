@@ -1,11 +1,11 @@
 package com.example.testandroidapp;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
+
 import android.util.Log;
 
 public class MyDownloader implements Runnable {
@@ -18,8 +18,8 @@ public class MyDownloader implements Runnable {
 		System.loadLibrary("callbacks");
 	}
 	
-	private native void writeCallback(byte buffer[], int size);
-	private native void progressCallback(int sizeTotal, int sizeCurr);
+	private native void writeCallback(int size);
+	private native void progressCallback(byte buffer[], int sizeTotal, int sizeCurr);
 	
 	MyDownloader() {
 		mUrl = null;
@@ -30,8 +30,14 @@ public class MyDownloader implements Runnable {
 		try {
 			URL url = new URL(sUrl);
 			HttpURLConnection connection = (HttpURLConnection)url.openConnection();
-			//throws exception. rewrite
-			//int contentLength = (int)Long.parseLong(connection.getHeaderField("Content-Length"));
+			
+			int contentLength = 0;
+			String values = connection.getHeaderField("Content-Length");
+			
+			if (values != null && !values.isEmpty()) {
+				contentLength = Integer.parseInt(values);
+			}			
+			
 			connection.setConnectTimeout(1000 * 2);
 			connection.setReadTimeout(1000 * 2);
 	        connection.connect();
@@ -44,7 +50,6 @@ public class MyDownloader implements Runnable {
 	        }
 	        
 	        InputStream inputStream = connection.getInputStream();
-	    	ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
 	        
 	        int bytesRead = -1;
 	        int currentBytes = 0;
@@ -52,12 +57,10 @@ public class MyDownloader implements Runnable {
 	        byte[] buffer = new byte[BUFFER_SIZE];
 	        while ((bytesRead = inputStream.read(buffer)) != -1) {
 	        	currentBytes += bytesRead;
-	            outputStream.write(buffer, 0, bytesRead);
-	            progressCallback(/*contentLength*/0, currentBytes);
+	            progressCallback(buffer, contentLength, currentBytes);
 	        }
 	        
-	        outputStream.close();
-	        writeCallback(outputStream.toByteArray(), currentBytes);
+	        writeCallback(currentBytes);
 	        
 	        inputStream.close();
 			connection.disconnect();

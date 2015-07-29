@@ -15,7 +15,7 @@ extern "C" {
  * Signature: ([BLjava/lang/Integer;)V
  */
 JNIEXPORT void JNICALL Java_com_example_testandroidapp_MyDownloader_writeCallback
-  (JNIEnv *, jobject, jbyteArray, jint);
+  (JNIEnv *, jobject, jint);
 
 /*
  * Class:     com_example_testandroidapp_MyDownloader
@@ -23,7 +23,7 @@ JNIEXPORT void JNICALL Java_com_example_testandroidapp_MyDownloader_writeCallbac
  * Signature: (Ljava/lang/Integer;Ljava/lang/Integer;)V
  */
 JNIEXPORT void JNICALL Java_com_example_testandroidapp_MyDownloader_progressCallback
-  (JNIEnv *, jobject, jint, jint);
+  (JNIEnv *, jobject, jbyteArray, jint, jint);
 
 #ifdef __cplusplus
 }
