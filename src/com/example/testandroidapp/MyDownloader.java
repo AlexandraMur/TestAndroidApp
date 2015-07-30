@@ -8,7 +8,7 @@ import java.net.URL;
 
 import android.util.Log;
 
-public class MyDownloader implements Runnable {
+public class MyDownloader /*implements Runnable*/ {
 	private static final String TAG = "MyDownloader";
 	private static final int BUFFER_SIZE = 4096;
 	private String mUrl;
@@ -25,7 +25,7 @@ public class MyDownloader implements Runnable {
 		mUrl = null;
 	}
 	
-	private void download(String sUrl) {
+	public void download(String sUrl) {
 		
 		try {
 			URL url = new URL(sUrl);
@@ -77,12 +77,12 @@ public class MyDownloader implements Runnable {
         }
        
 	}
-
+/*
 	@Override
 	public void run() {
 		this.download(mUrl);
 	}
-	
+*/
 	public void setUrl(String url) {
 		mUrl = url;	
 	}
