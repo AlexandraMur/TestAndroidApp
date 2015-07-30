@@ -11,7 +11,7 @@ import android.util.Log;
 public class MyDownloader /*implements Runnable*/ {
 	private static final String TAG = "MyDownloader";
 	private static final int BUFFER_SIZE = 4096;
-	private String mUrl;
+	//private String mUrl;
 	
 	
 	static {
@@ -21,9 +21,9 @@ public class MyDownloader /*implements Runnable*/ {
 	private native void writeCallback(int size);
 	private native void progressCallback(byte buffer[], int sizeTotal, int sizeCurr);
 	
-	MyDownloader() {
-		mUrl = null;
-	}
+	//MyDownloader() {
+		//mUrl = null;
+	//}
 	
 	public void download(String sUrl) {
 		
@@ -83,7 +83,4 @@ public class MyDownloader /*implements Runnable*/ {
 		this.download(mUrl);
 	}
 */
-	public void setUrl(String url) {
-		mUrl = url;	
-	}
 }

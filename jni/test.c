@@ -1,3 +1,4 @@
+#include <pthread.h>
 #include <android/log.h>
 #include "com_example_testandroidapp_MainActivity.h"
 
@@ -14,16 +15,17 @@ void JNICALL workFlow(JNIEnv *pEnv){
 		__android_log_write(ANDROID_LOG_INFO, "test.c", "FAIL myClass");
 	}
 
-	jmethodID constructorID = (*pEnv)->GetMethodID(pEnv, myClass, "<init>", "()V");
-
-	if (!constructorID){
-		__android_log_write(ANDROID_LOG_INFO, "test.c", "FAIL constructorID");
-	}
-
-	jmethodID downloadID = (*pEnv)->GetMethodID(pEnv, myClass, "download", "(Ljava/lang/String;)V");
+	jmethodID downloadID = (*pEnv)->GetMethodID(pEnv, myClass, "download", "(Ljava/lang/String;)L");
 	if (!downloadID){
 		__android_log_write(ANDROID_LOG_INFO, "test.c", "FAIL downloadID");
 	}
+
+	//(*pEnv)->CallVoidMethod(pEnv, myClass, constructorID);
+	//__android_log_write(ANDROID_LOG_INFO, "test.c", "constructor");
+
+	// don't forget about arguments in download
+	//(*pEnv)->CallVoidMethod(pEnv, myClass, downloadID);
+	//__android_log_write(ANDROID_LOG_INFO, "test.c", "download");
 
 }
 
