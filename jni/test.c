@@ -5,12 +5,24 @@
 JavaVM *vm;
 
 void JNICALL workFlow(JNIEnv *pEnv){
+	jclass myDownloader = (*pEnv)->FindClass(pEnv, "com/example/testandroidapp/MyDownloader");
+	if (!myDownloader){
+		__android_log_write(ANDROID_LOG_INFO, "test.c", "FAIL myDownloader");
+		return;
+	}
 
-	__android_log_write(ANDROID_LOG_INFO, "test.c", "All works!");
+	jmethodID downloadID = (*pEnv)->GetStaticMethodID(pEnv, myDownloader, "download", "(Ljava/lang/String;)V");
+	if (!downloadID){
+		__android_log_write(ANDROID_LOG_INFO, "test.c", "FAIL downloadID");
+		return;
+	}
+
+	jstring jStr = (*pEnv)->NewStringUTF(pEnv, "http://idev.by/android/22971/");
+	(*pEnv)->CallStaticVoidMethod(pEnv, myDownloader, downloadID, jStr);
 }
 
 static void nativeTest (JNIEnv *pEnv){
-	workFlow(pEnv);
+		workFlow(pEnv);
 }
 
 static JNINativeMethod methodTable[] = {
