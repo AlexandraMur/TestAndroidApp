@@ -1,12 +1,12 @@
 #include "com_example_testandroidapp_MyDownloader.h"
 #include <android/log.h>
 
-void writeCallback (JNIEnv *pEnv, jobject pThis, jint size){
+static void writeCallback (JNIEnv *pEnv, jobject pThis, jint size){
 	__android_log_write(ANDROID_LOG_INFO, "Callbacks", "Downloaded");
 	return;
 }
 
-void progressCallback (JNIEnv *pEnv, jobject pThis, jbyteArray byteArray, jint sizeTotal, jint sizeCurr){
+static void progressCallback (JNIEnv *pEnv, jobject pThis, jbyteArray byteArray, jint sizeTotal, jint sizeCurr){
 	if (sizeTotal == 0){
 		//print only current size;
 		__android_log_write(ANDROID_LOG_INFO, "Callbacks", "Current size");

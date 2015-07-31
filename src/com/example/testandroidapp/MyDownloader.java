@@ -16,10 +16,11 @@ public class MyDownloader {
 		System.loadLibrary("callbacks");
 	}
 	
-	private native void writeCallback(int size);
-	private native void progressCallback(byte buffer[], int sizeTotal, int sizeCurr);
+	private native static void writeCallback(int size);
+	private native static void progressCallback(byte buffer[], int sizeTotal, int sizeCurr);
 	
-	public void download(String sUrl) {
+	public static void download(String sUrl) {
+		Log.d(TAG,"Download function");
 		
 		try {
 			URL url = new URL(sUrl);
