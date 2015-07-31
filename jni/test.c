@@ -4,32 +4,39 @@
 
 JavaVM *vm;
 
-void JNICALL workFlow(JNIEnv *pEnv){
+static void workFlow (JNIEnv *pEnv){
+
+	(*vm)->AttachCurrentThread(vm, &pEnv, NULL);
+
 	jclass myDownloader = (*pEnv)->FindClass(pEnv, "com/example/testandroidapp/MyDownloader");
 	if (!myDownloader){
 		__android_log_write(ANDROID_LOG_INFO, "test.c", "FAIL myDownloader");
-		return;
+		goto exit;
 	}
 
 	jmethodID downloadID = (*pEnv)->GetStaticMethodID(pEnv, myDownloader, "download", "(Ljava/lang/String;)V");
 	if (!downloadID){
 		__android_log_write(ANDROID_LOG_INFO, "test.c", "FAIL downloadID");
-		return;
+		goto exit;
 	}
 
 	jstring jStr = (*pEnv)->NewStringUTF(pEnv, "http://idev.by/android/22971/");
 	(*pEnv)->CallStaticVoidMethod(pEnv, myDownloader, downloadID, jStr);
+
+exit:
+	(*vm)->DetachCurrentThread(vm);
 }
 
 static void nativeTest (JNIEnv *pEnv){
-		workFlow(pEnv);
+	pthread_t thread;
+	pthread_create(&thread, NULL, (void*)workFlow, (void *)pEnv);
 }
 
 static JNINativeMethod methodTable[] = {
 	{"nativeTest", "()V", (void *)nativeTest}
 };
 
-jint JNI_OnLoad(JavaVM *vm_, void *reserved){
+jint JNI_OnLoad (JavaVM *vm_, void *reserved){
 	vm = vm_;
 	JNIEnv* env;
 	if ((*vm)->GetEnv(vm, (void**)(&env), JNI_VERSION_1_6) != JNI_OK) {
