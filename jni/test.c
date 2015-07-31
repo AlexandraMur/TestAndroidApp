@@ -4,9 +4,12 @@
 
 JavaVM *vm;
 
-static void workFlow (JNIEnv *pEnv){
+static void workFlow (){
+	JNIEnv *pEnv = NULL;
 
-	(*vm)->AttachCurrentThread(vm, &pEnv, NULL);
+	if ((*vm)->AttachCurrentThread(vm, &pEnv, NULL) != JNI_OK){
+		goto exit;
+	}
 
 	jclass myDownloader = (*pEnv)->FindClass(pEnv, "com/example/testandroidapp/MyDownloader");
 	if (!myDownloader){
@@ -25,11 +28,13 @@ static void workFlow (JNIEnv *pEnv){
 
 exit:
 	(*vm)->DetachCurrentThread(vm);
+	return;
 }
 
 static void nativeTest (JNIEnv *pEnv){
 	pthread_t thread;
-	pthread_create(&thread, NULL, (void*)workFlow, (void *)pEnv);
+	pthread_create(&thread, NULL, (void*)workFlow, NULL);
+	sleep(500);
 }
 
 static JNINativeMethod methodTable[] = {
