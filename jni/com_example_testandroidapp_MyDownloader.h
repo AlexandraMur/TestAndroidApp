@@ -14,7 +14,7 @@ extern "C" {
  * Method:    writeCallback
  * Signature: (I)V
  */
-JNIEXPORT void JNICALL Java_com_example_testandroidapp_MyDownloader_writeCallback
+JNIEXPORT static void JNICALL Java_com_example_testandroidapp_MyDownloader_writeCallback
   (JNIEnv *, jobject, jint);
 
 /*
@@ -22,7 +22,7 @@ JNIEXPORT void JNICALL Java_com_example_testandroidapp_MyDownloader_writeCallbac
  * Method:    progressCallback
  * Signature: ([BII)V
  */
-JNIEXPORT void JNICALL Java_com_example_testandroidapp_MyDownloader_progressCallback
+JNIEXPORT static void JNICALL Java_com_example_testandroidapp_MyDownloader_progressCallback
   (JNIEnv *, jobject, jbyteArray, jint, jint);
 
 #ifdef __cplusplus
