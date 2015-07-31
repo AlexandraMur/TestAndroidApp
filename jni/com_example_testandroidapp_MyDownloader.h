@@ -26,6 +26,6 @@ JNIEXPORT void JNICALL Java_com_example_testandroidapp_MyDownloader_progressCall
   (JNIEnv *, jobject, jbyteArray, jint, jint);
 
 #ifdef __cplusplus
-}
+}	//extern "C"
 #endif
 #endif

@@ -13,6 +13,6 @@ extern "C" {
 JNIEXPORT void JNICALL Java_com_example_testandroidapp_MainActivity_nativeTest (JNIEnv *);
 
 #ifdef __cplusplus
-}
+} // extern "C"
 #endif
 #endif /* COM_EXAMPLE_TESTANDROIDAPP_MAINACTIVITY_H_ */
