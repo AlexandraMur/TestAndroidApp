@@ -7,6 +7,8 @@
 #include <stdint.h>
 #include "downloader.h"
 
+#define USE_CURL
+
 struct Downloader {
 	FILE *file;
 	int alive;
@@ -142,12 +144,13 @@ static void *work_flow(void* _d){
 		TAILQ_REMOVE(&d->head, d->_entry, entries);
 		d->queue_size--;
 		pthread_mutex_unlock(&d->mutex);
+		#if USE_CURL
 		download(d);
+		#endif
 		destroy_entry(d->_entry);
     }
     return NULL;
 }
-
 
 Downloader *downloader_create(IDownloader_Cb *my_callbacks, void *args){
 	if (!my_callbacks) {
@@ -219,4 +222,3 @@ int downloader_add(Downloader *d, char *url, char *name_of_file) {
 
 	return DOWNLOADER_STATUS_OK;
 }
-
