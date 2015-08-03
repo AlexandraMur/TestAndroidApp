@@ -1,12 +1,12 @@
 #include "com_example_testandroidapp_MyDownloader.h"
 #include <android/log.h>
 
-static void writeCallback (JNIEnv *pEnv, jobject pThis, jint size){
+static void writeCallback (JNIEnv *pEnv, jobject pThis, jint size, jlong args){
 	__android_log_write(ANDROID_LOG_INFO, "Callbacks", "Downloaded");
 	return;
 }
 
-static void progressCallback (JNIEnv *pEnv, jobject pThis, jbyteArray byteArray, jint sizeTotal, jint sizeCurr){
+static void progressCallback (JNIEnv *pEnv, jobject pThis, jbyteArray byteArray, jint sizeTotal, jint sizeCurr, jlong args){
 	if (sizeTotal == 0){
 		//print only current size;
 		__android_log_write(ANDROID_LOG_INFO, "Callbacks", "Current size");
@@ -19,8 +19,8 @@ static void progressCallback (JNIEnv *pEnv, jobject pThis, jbyteArray byteArray,
 }
 
 static JNINativeMethod methodTable[] = {
-	{"writeCallback", "(I)V", (void *)writeCallback},
-	{"progressCallback", "([BII)V", (void*)progressCallback}
+	{"writeCallback", "(IJ)V", (void *)writeCallback},
+	{"progressCallback", "([BIIJ)V", (void*)progressCallback}
 };
 
 jint JNI_OnLoad(JavaVM *vm, void *reserved){

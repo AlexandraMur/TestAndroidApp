@@ -16,13 +16,13 @@ public class MyDownloader {
 		System.loadLibrary("callbacks");
 	}
 	
-	private native void writeCallback(int size);
-	private native void progressCallback(byte buffer[], int sizeTotal, int sizeCurr);
+	private native void writeCallback(int size, long args);
+	private native void progressCallback(byte buffer[], int sizeTotal, int sizeCurr, long args);
 	
 	
 	public MyDownloader(){}
 	
-	public void download(String sUrl) {
+	public void download(String sUrl, long args) {
 		Log.d(TAG,"Download function");
 		
 		try {
@@ -55,10 +55,10 @@ public class MyDownloader {
 	        byte[] buffer = new byte[BUFFER_SIZE];
 	        while ((bytesRead = inputStream.read(buffer)) != -1) {
 	        	currentBytes += bytesRead;
-	            progressCallback(buffer, contentLength, currentBytes);
+	            progressCallback(buffer, contentLength, currentBytes, args);
 	        }
 	        
-	        writeCallback(currentBytes);
+	        writeCallback(currentBytes, args);
 	        
 	        inputStream.close();
 			connection.disconnect();

@@ -13,7 +13,8 @@ static void workFlow (){
 		goto exit;
 	}
 	jstring jStr = (*pEnv)->NewStringUTF(pEnv, "http://idev.by/android/22971/");
-	(*pEnv)->CallVoidMethod(pEnv, globalMyDownloaderObj, globalDownloadID, jStr);
+	long args = NULL;
+	(*pEnv)->CallVoidMethod(pEnv, globalMyDownloaderObj, globalDownloadID, jStr, args);
 
 exit:
 	(*globalVm)->DetachCurrentThread(globalVm);
@@ -53,7 +54,7 @@ jint JNI_OnLoad (JavaVM *vm_, void *reserved){
 		return JNI_ERR;
 	}
 
-	globalDownloadID = (*env)->GetMethodID(env, globalMyDownloaderID, "download", "(Ljava/lang/String;)V");
+	globalDownloadID = (*env)->GetMethodID(env, globalMyDownloaderID, "download", "(Ljava/lang/String;J)V");
 	if (!globalDownloadID){
 		return JNI_ERR;
 	}
