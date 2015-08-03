@@ -70,6 +70,11 @@ jint JNI_OnLoad (JavaVM *vm_, void *reserved){
 }
 
 void JNI_OnUnload(JavaVM *vm, void *reserved){
+
+	if (!globalMyDownloaderObj){
+		return;
+	}
+
 	JNIEnv* env;
 	if ((*globalVm)->GetEnv(globalVm, (void**)(&env), JNI_VERSION_1_6) != JNI_OK) {
 		return;
