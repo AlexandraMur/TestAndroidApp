@@ -68,3 +68,12 @@ jint JNI_OnLoad (JavaVM *vm_, void *reserved){
 	__android_log_write(ANDROID_LOG_INFO, "test.c", "GOOD");
 	return JNI_VERSION_1_6;
 }
+
+void JNI_OnUnload(JavaVM *vm, void *reserved){
+	JNIEnv* env;
+	if ((*globalVm)->GetEnv(globalVm, (void**)(&env), JNI_VERSION_1_6) != JNI_OK) {
+		return;
+	}
+	(*env)->DeleteGlobalRef(env, globalMyDownloaderObj);
+}
+
