@@ -1,13 +1,13 @@
 #include <string.h>
 #include <stdlib.h>
 #include <unistd.h>
+#if USE_CURL
 #include "curl/curl.h"
+#endif
 #include <pthread.h>
 #include <sys/queue.h>
 #include <stdint.h>
 #include "downloader.h"
-
-#define USE_CURL
 
 struct Downloader {
 	FILE *file;
