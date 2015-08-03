@@ -16,7 +16,7 @@ include $(BUILD_SHARED_LIBRARY)
 
 include $(CLEAR_VARS)
 LOCAL_CFLAGS += -std=c99
-LOCAL_SHARE_LIBRARIES := -ljson
+LOCAL_SHARE_LIBRARIES := ljson
 LOCAL_MODULE := parser
 LOCAL_SRC_FILES := parser/parser.c
 include $(BUILD_SHARED_LIBRARY)
