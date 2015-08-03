@@ -20,7 +20,6 @@ public class MainActivity extends Activity{
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		setContentView(com.example.testandroidapp.R.layout.activity_main);
-		
 		View button1 = findViewById(com.example.testandroidapp.R.id.button1);
 		button1.setOnClickListener(new View.OnClickListener() {
 			@Override

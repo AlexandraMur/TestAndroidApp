@@ -2,38 +2,26 @@
 #include <pthread.h>
 #include <android/log.h>
 
-static JavaVM *vm;
-static jclass myDownloader;
-static jmethodID downloadID;
+JavaVM *globalVm;
+jclass globalMyDownloaderID;
+jmethodID globalDownloadID;
+jobject globalMyDownloaderObj;
 
 static void workFlow (){
 	JNIEnv *pEnv = NULL;
-	if ((*vm)->AttachCurrentThread(vm, &pEnv, NULL) != JNI_OK){
+	if ((*globalVm)->AttachCurrentThread(globalVm, &pEnv, NULL) != JNI_OK){
 		goto exit;
 	}
-
-	if (!myDownloader){
-		__android_log_write(ANDROID_LOG_INFO, "test.c", "FAIL myDownloader");
-		goto exit;
-	}
-
-	if (!downloadID){
-		__android_log_write(ANDROID_LOG_INFO, "test.c", "FAIL downloadID");
-		goto exit;
-	}
-
 	jstring jStr = (*pEnv)->NewStringUTF(pEnv, "http://idev.by/android/22971/");
-	(*pEnv)->CallStaticVoidMethod(pEnv, myDownloader, downloadID, jStr);
+	(*pEnv)->CallVoidMethod(pEnv, globalMyDownloaderObj, globalDownloadID, jStr);
 
 exit:
-	(*vm)->DetachCurrentThread(vm);
-	return;
+	(*globalVm)->DetachCurrentThread(globalVm);
 }
 
 static void nativeTest (JNIEnv *pEnv){
 	pthread_t thread;
 	pthread_create(&thread, NULL, (void*)workFlow, NULL);
-	sleep(500);
 }
 
 static JNINativeMethod methodTable[] = {
@@ -41,20 +29,42 @@ static JNINativeMethod methodTable[] = {
 };
 
 jint JNI_OnLoad (JavaVM *vm_, void *reserved){
-	vm = vm_;
-	JNIEnv* env;
-	if ((*vm)->GetEnv(vm, (void**)(&env), JNI_VERSION_1_6) != JNI_OK) {
+	if (!vm_){
 		return JNI_ERR;
 	}
-	myDownloader = (*env)->FindClass(env, "com/example/testandroidapp/MyDownloader");
-	downloadID = (*env)->GetStaticMethodID(env, myDownloader, "download", "(Ljava/lang/String;)V");
+	globalVm = vm_;
+	JNIEnv* env;
+	if ((*globalVm)->GetEnv(globalVm, (void**)(&env), JNI_VERSION_1_6) != JNI_OK) {
+		return JNI_ERR;
+	}
+
+	globalMyDownloaderID = (*env)->FindClass(env, "com/example/testandroidapp/MyDownloader");
+	if (!globalMyDownloaderID){
+		return JNI_ERR;
+	}
+
+	jclass myDownloaderObj = (*env)->AllocObject(env, globalMyDownloaderID);
+	if (!myDownloaderObj){
+		return JNI_ERR;
+	}
+
+	globalMyDownloaderObj = (*env)->NewGlobalRef(env, myDownloaderObj);
+	if (!globalMyDownloaderObj){
+		return JNI_ERR;
+	}
+
+	globalDownloadID = (*env)->GetMethodID(env, globalMyDownloaderID, "download", "(Ljava/lang/String;)V");
+	if (!globalDownloadID){
+		return JNI_ERR;
+	}
 
 	jclass _class = (*env)->FindClass(env,"com/example/testandroidapp/MainActivity");
-
-	if (_class){
-		(*env)->RegisterNatives(env, _class, methodTable, sizeof(methodTable) / sizeof(methodTable[0]) );
-	} else {
+	if (!_class){
 		return JNI_ERR;
 	}
+
+	(*env)->RegisterNatives(env, _class, methodTable, sizeof(methodTable) / sizeof(methodTable[0]) );
+
+	__android_log_write(ANDROID_LOG_INFO, "test.c", "GOOD");
 	return JNI_VERSION_1_6;
 }
