@@ -13,11 +13,14 @@ struct PlaylistItem {
 	char *name;
 	size_t size;
 };
+
 typedef struct PlaylistItem PlaylistItem;
+
 struct Playlist{
 	PlaylistItem *items;
 	size_t items_count;
 };
+
 typedef struct Playlist Playlist;
 
 Playlist* playlist_create();

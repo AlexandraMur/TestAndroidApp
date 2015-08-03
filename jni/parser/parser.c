@@ -113,9 +113,6 @@ bool playlist_parse(Playlist* playlist, char *name_of_file){
 	for (int i = 0 ; i < playlist->items_count; i++){
 		cJSON *subitem = cJSON_GetArrayItem(files, i);
 		set_item(&playlist->items[i], subitem);		
-		/////////////////////
-		//printf("%i %s %s\n", i+1, playlist->items[i].uri, playlist->items[i].name); 
-		/////////////////////
 	}
 	result = true;
 done:
@@ -124,7 +121,6 @@ done:
 	}
 	return result; 
 }
-
 
 void playlist_destroy(Playlist *playlist){
 	if(!playlist){
