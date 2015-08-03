@@ -1,6 +1,6 @@
 #include <stdio.h>
-#include <cJSON.h>
 #include <string.h>
+#include <parser/cJSON.h>
 #include "parser.h"
 
 static char* cast_to_standart(char *str){

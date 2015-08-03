@@ -7,6 +7,7 @@
 #include <pthread.h>
 #include <sys/queue.h>
 #include <stdint.h>
+#include <stdio.h>
 #include "downloader.h"
 
 struct Downloader {
@@ -77,6 +78,7 @@ struct entry* create_entry(char *url, char *name_of_file){
 	return _entry;
 }
 
+#if USE_CURL
 static int progress_callback(void *_d, curl_off_t dltotal, curl_off_t dlnow, curl_off_t ultotal, curl_off_t ulnow){
 	Downloader* d = (Downloader*)_d;
 		
@@ -88,8 +90,10 @@ static int progress_callback(void *_d, curl_off_t dltotal, curl_off_t dlnow, cur
 	}
   	return 0;
 }
+#endif //USE_CURL
 
-static void download(Downloader *d) {	
+static void download(Downloader *d) {
+	#if USE_CURL
 	int error = DOWNLOADER_STATUS_ERROR;
 	CURL *curl = curl_easy_init();
 	if (!curl) {
@@ -124,7 +128,8 @@ exit:
 	}
 	if (d->my_callbacks->complete) {
     	d->my_callbacks->complete(d, d->args, d->_entry->url, d->_entry->name_of_file, error, d->queue_size);
-	}	
+	}
+	#endif //USE_CURL
 }
 
 static void *work_flow(void* _d){
