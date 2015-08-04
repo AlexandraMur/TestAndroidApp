@@ -2,10 +2,10 @@
 #include <pthread.h>
 #include <android/log.h>
 
-JavaVM *globalVm;
-jclass globalMyDownloaderID;
-jmethodID globalDownloadID;
-jobject globalMyDownloaderObj;
+static JavaVM *globalVm;
+static jclass globalMyDownloaderID;
+static jmethodID globalDownloadID;
+static jobject globalMyDownloaderObj;
 
 static void workFlow (){
 	JNIEnv *pEnv = NULL;
@@ -82,4 +82,3 @@ void JNI_OnUnload(JavaVM *vm, void *reserved){
 	}
 	(*env)->DeleteGlobalRef(env, globalMyDownloaderObj);
 }
-
