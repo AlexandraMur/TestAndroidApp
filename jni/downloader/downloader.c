@@ -154,7 +154,7 @@ static void *work_flow(void* _d){
 		#if USE_CURL
 		download(d);
 		#else
-		nativeTest();
+		downloadThroughtJava();
 		#endif //USE_CURL
 		destroy_entry(d->_entry);
     }

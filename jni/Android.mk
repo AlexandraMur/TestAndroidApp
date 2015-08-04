@@ -30,7 +30,7 @@ include $(BUILD_SHARED_LIBRARY)
 
 
 include $(CLEAR_VARS)
-LOCAL_CFLAGS := -std=c99
+LOCAL_CFLAGS := -std=c99 -DANDROID
 LOCAL_MODULE := test
 LOCAL_SRC_FILES := test.c
 LOCAL_LDFLAGS := -llog
