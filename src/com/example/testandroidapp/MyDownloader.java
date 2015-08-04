@@ -73,6 +73,5 @@ public class MyDownloader {
         } catch (Exception err) {
         	Log.e(TAG, err.toString());
         }
-       
 	}
 }

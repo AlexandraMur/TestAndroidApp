@@ -3,7 +3,9 @@
 #include <unistd.h>
 #if USE_CURL
 #include "curl/curl.h"
-#endif
+#else
+#include <test.c>
+#endif //USE_CURL
 #include <pthread.h>
 #include <sys/queue.h>
 #include <stdint.h>
@@ -151,7 +153,9 @@ static void *work_flow(void* _d){
 		pthread_mutex_unlock(&d->mutex);
 		#if USE_CURL
 		download(d);
-		#endif
+		#else
+		nativeTest();
+		#endif //USE_CURL
 		destroy_entry(d->_entry);
     }
     return NULL;

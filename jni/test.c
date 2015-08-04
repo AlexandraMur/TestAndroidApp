@@ -20,7 +20,7 @@ exit:
 	(*globalVm)->DetachCurrentThread(globalVm);
 }
 
-static void nativeTest (JNIEnv *pEnv){
+static void nativeTest (){
 	pthread_t thread;
 	pthread_create(&thread, NULL, (void*)workFlow, NULL);
 }
