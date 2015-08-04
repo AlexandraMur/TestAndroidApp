@@ -7,7 +7,6 @@
 #include <downloader/downloader.h>
 #include <parser/parser.h>
 
-
 static JavaVM *globalVm;
 static jclass globalMyDownloaderID;
 static jmethodID globalDownloadID;
