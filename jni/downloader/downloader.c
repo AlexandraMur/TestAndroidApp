@@ -9,8 +9,10 @@
 #include <stdint.h>
 #include <stdio.h>
 #include "downloader.h"
-
+#if defined(ANDROID) && !defined(USE_CURL)
+#include "com_example_testandroidapp_MyDownloader.h"
 #include <android/log.h>
+#endif //defined(ANDROID) && !defined(USE_CURL)
 
 struct Downloader {
 	FILE *file;
@@ -35,11 +37,42 @@ struct entry {
     TAILQ_ENTRY(entry) entries;
 };
 
+#if ANDROID
 static JavaVM *globalVm;
 static jclass globalMyDownloaderID;
 static jmethodID globalDownloadID;
 static jobject globalMyDownloaderObj;
+#endif //ANDROID
 
+#if ANDROID
+static void writeCallback (JNIEnv *pEnv, jobject pThis, jint size, jlong args){
+	__android_log_write(ANDROID_LOG_INFO, "Callbacks", "Downloaded");
+	return;
+}
+#endif //ANDROID
+
+#if ANDROID
+static void progressCallback (JNIEnv *pEnv, jobject pThis, jbyteArray byteArray, jint sizeTotal, jint sizeCurr, jlong args){
+	if (sizeTotal == 0){
+		//print only current size;
+		__android_log_write(ANDROID_LOG_INFO, "Callbacks", "Current size");
+	} else {
+		//print percents
+		int currPercent = (sizeCurr * 100) / sizeTotal;
+		__android_log_write(ANDROID_LOG_INFO, "Callbacks", "Progress Callback");
+	}
+	return;
+}
+#endif //ANDROID
+
+#if ANDROID
+static JNINativeMethod methodTable[] = {
+	{"writeCallback", "(IJ)V", (void *)writeCallback},
+	{"progressCallback", "([BIIJ)V", (void*)progressCallback}
+};
+#endif //ANDROID
+
+#if defined(ANDROID) && !defined(USE_CURL)
 int downloader_OnLoad(JavaVM *vm_){
 	globalVm = vm_;
 
@@ -58,6 +91,14 @@ int downloader_OnLoad(JavaVM *vm_){
 		return JNI_ERR;
 	}
 
+	jclass _class = (*env)->FindClass(env,"com/example/testandroidapp/MyDownloader");
+
+	if (_class){
+		(*env)->RegisterNatives(env, _class, methodTable, sizeof(methodTable) / sizeof(methodTable[0]) );
+	} else {
+		return JNI_ERR;
+	}
+
 	globalMyDownloaderObj = (*env)->NewGlobalRef(env, myDownloaderObj);
 	if (!globalMyDownloaderObj){
 		return JNI_ERR;
@@ -70,6 +111,7 @@ int downloader_OnLoad(JavaVM *vm_){
 
 	return JNI_VERSION_1_6;
 }
+#endif //defined(ANDROID) && !defined(USE_CURL)
 
 static void clear_queue(Downloader *d){
 	pthread_mutex_lock(&d->mutex);
@@ -81,6 +123,7 @@ static void clear_queue(Downloader *d){
 	pthread_mutex_unlock(&d->mutex);
 }
 
+#if USE_CURL
 static size_t callback(void *ptr, size_t size, size_t nmemb, Downloader* d){
     size_t _size = 0;
     if (d->alive){
@@ -88,6 +131,7 @@ static size_t callback(void *ptr, size_t size, size_t nmemb, Downloader* d){
     }
     return _size;
 }
+#endif //USE_CURL
 
 static void destroy_entry(struct entry *_entry){
 	if (!_entry){

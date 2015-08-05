@@ -5,6 +5,7 @@ LOCAL_CFLAGS := -std=gnu99
 LOCAL_MODULE := downloader
 LOCAL_SRC_FILES := downloader/downloader.c
 LOCAL_LDFLAGS := -llog
+LOCAL_CFLAGS := -DANDROID
 include $(BUILD_STATIC_LIBRARY)
 
 
@@ -12,6 +13,7 @@ include $(CLEAR_VARS)
 LOCAL_CFLAGS := -std=gnu99
 LOCAL_MODULE := cJSON
 LOCAL_SRC_FILES := parser/cJSON.c
+LOCAL_CFLAGS := -DANDROID
 include $(BUILD_STATIC_LIBRARY)
 
 
@@ -20,15 +22,8 @@ LOCAL_CFLAGS += -std=gnu99
 LOCAL_MODULE := parser
 LOCAL_SRC_FILES := parser/parser.c
 LOCAL_STATIC_LIBRARIES += cJSON
+LOCAL_CFLAGS := -DANDROID
 include $(BUILD_STATIC_LIBRARY)
-
-
-include $(CLEAR_VARS)
-LOCAL_CFLAGS := -std=gnu99
-LOCAL_MODULE := callbacks
-LOCAL_SRC_FILES := callbacks.c
-LOCAL_LDFLAGS := -llog
-include $(BUILD_SHARED_LIBRARY)
 
 
 include $(CLEAR_VARS)
@@ -38,5 +33,6 @@ LOCAL_SRC_FILES := test.c
 LOCAL_SHARED_LIBRARIES += libparser
 LOCAL_STATIC_LIBRARIES += libdownloader
 LOCAL_LDFLAGS := -llog
+LOCAL_CFLAGS := -DANDROID
 include $(BUILD_SHARED_LIBRARY) 
   
