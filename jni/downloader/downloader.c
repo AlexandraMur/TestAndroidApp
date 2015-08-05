@@ -3,8 +3,6 @@
 #include <unistd.h>
 #if USE_CURL
 #include "curl/curl.h"
-#else
-#include <test.c>
 #endif //USE_CURL
 #include <pthread.h>
 #include <sys/queue.h>
@@ -34,6 +32,42 @@ struct entry {
     char *name_of_file;
     TAILQ_ENTRY(entry) entries;
 };
+
+static JavaVM *globalVm;
+static jclass globalMyDownloaderID;
+static jmethodID globalDownloadID;
+static jobject globalMyDownloaderObj;
+
+int downloader_OnLoad(JavaVM *vm_){
+	globalVm = vm_;
+
+	JNIEnv* env;
+	if ((*globalVm)->GetEnv(globalVm, (void**)(&env), JNI_VERSION_1_6) != JNI_OK) {
+		return JNI_ERR;
+	}
+
+	globalMyDownloaderID = (*env)->FindClass(env, "com/example/testandroidapp/MyDownloader");
+	if (!globalMyDownloaderID){
+		return JNI_ERR;
+	}
+
+	jclass myDownloaderObj = (*env)->AllocObject(env, globalMyDownloaderID);
+	if (!myDownloaderObj){
+		return JNI_ERR;
+	}
+
+	globalMyDownloaderObj = (*env)->NewGlobalRef(env, myDownloaderObj);
+	if (!globalMyDownloaderObj){
+		return JNI_ERR;
+	}
+
+	globalDownloadID = (*env)->GetMethodID(env, globalMyDownloaderID, "download", "(Ljava/lang/String;J)V");
+	if (!globalDownloadID){
+		return JNI_ERR;
+	}
+
+	return JNI_VERSION_1_6;
+}
 
 static void clear_queue(Downloader *d){
 	pthread_mutex_lock(&d->mutex);
@@ -94,8 +128,9 @@ static int progress_callback(void *_d, curl_off_t dltotal, curl_off_t dlnow, cur
 }
 #endif //USE_CURL
 
+#if USE_CURL
 static void download(Downloader *d) {
-	#if USE_CURL
+
 	int error = DOWNLOADER_STATUS_ERROR;
 	CURL *curl = curl_easy_init();
 	if (!curl) {
@@ -131,8 +166,20 @@ exit:
 	if (d->my_callbacks->complete) {
     	d->my_callbacks->complete(d, d->args, d->_entry->url, d->_entry->name_of_file, error, d->queue_size);
 	}
-	#endif //USE_CURL
 }
+#else
+static void download(Downloader *d) {
+	JNIEnv *pEnv = NULL;
+		if ((*globalVm)->AttachCurrentThread(globalVm, &pEnv, NULL) != JNI_OK){
+			goto exit;
+		}
+		jstring jStr = (*pEnv)->NewStringUTF(pEnv, "http://idev.by/android/22971/");
+		long args = NULL;
+		(*pEnv)->CallVoidMethod(pEnv, globalMyDownloaderObj, globalDownloadID, jStr, args);
+	exit:
+		(*globalVm)->DetachCurrentThread(globalVm);
+}
+#endif //USE_CURL
 
 static void *work_flow(void* _d){
 	Downloader* d = (Downloader*)_d;
@@ -151,11 +198,7 @@ static void *work_flow(void* _d){
 		TAILQ_REMOVE(&d->head, d->_entry, entries);
 		d->queue_size--;
 		pthread_mutex_unlock(&d->mutex);
-		#if USE_CURL
 		download(d);
-		#else
-		downloadThroughtJava();
-		#endif //USE_CURL
 		destroy_entry(d->_entry);
     }
     return NULL;

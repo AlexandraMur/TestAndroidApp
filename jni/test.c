@@ -7,11 +7,6 @@
 #include <downloader/downloader.h>
 #include <parser/parser.h>
 
-static JavaVM *globalVm;
-static jclass globalMyDownloaderID;
-static jmethodID globalDownloadID;
-static jobject globalMyDownloaderObj;
-
 struct syncronize {
 	int num;
 	pthread_mutex_t mutex;
@@ -50,6 +45,7 @@ static void my_complete(Downloader *d, void *args, char *url, char *name_of_file
 	printf ("%zu file/s in stack\n", number_files_in_stack);
 }
 
+/*
 static void downloadThroughtJava(){
 	JNIEnv *pEnv = NULL;
 	if ((*globalVm)->AttachCurrentThread(globalVm, &pEnv, NULL) != JNI_OK){
@@ -61,7 +57,7 @@ static void downloadThroughtJava(){
 exit:
 	(*globalVm)->DetachCurrentThread(globalVm);
 }
-
+*/
 static void workFlow (){
 	IDownloader_Cb my_callbacks;
 	my_callbacks.complete = &my_complete;
@@ -149,33 +145,18 @@ static JNINativeMethod methodTable[] = {
 	{"nativeTest", "()V", (void *)nativeTest}
 };
 
-jint JNI_OnLoad (JavaVM *vm_, void *reserved){
-	if (!vm_){
+jint JNI_OnLoad (JavaVM *vm, void *reserved){
+	if (!vm){
 		return JNI_ERR;
 	}
-	globalVm = vm_;
+
+	int downl_onload = downloader_OnLoad(vm);
+	if (downl_onload != JNI_VERSION_1_6){
+		return JNI_ERR;
+	}
+
 	JNIEnv* env;
-	if ((*globalVm)->GetEnv(globalVm, (void**)(&env), JNI_VERSION_1_6) != JNI_OK) {
-		return JNI_ERR;
-	}
-
-	globalMyDownloaderID = (*env)->FindClass(env, "com/example/testandroidapp/MyDownloader");
-	if (!globalMyDownloaderID){
-		return JNI_ERR;
-	}
-
-	jclass myDownloaderObj = (*env)->AllocObject(env, globalMyDownloaderID);
-	if (!myDownloaderObj){
-		return JNI_ERR;
-	}
-
-	globalMyDownloaderObj = (*env)->NewGlobalRef(env, myDownloaderObj);
-	if (!globalMyDownloaderObj){
-		return JNI_ERR;
-	}
-
-	globalDownloadID = (*env)->GetMethodID(env, globalMyDownloaderID, "download", "(Ljava/lang/String;J)V");
-	if (!globalDownloadID){
+	if ((*vm)->GetEnv(vm, (void**)(&env), JNI_VERSION_1_6) != JNI_OK) {
 		return JNI_ERR;
 	}
 
@@ -185,19 +166,4 @@ jint JNI_OnLoad (JavaVM *vm_, void *reserved){
 	}
 
 	(*env)->RegisterNatives(env, _class, methodTable, sizeof(methodTable) / sizeof(methodTable[0]) );
-
-	return JNI_VERSION_1_6;
-}
-
-void JNI_OnUnload(JavaVM *vm, void *reserved){
-
-	if (!globalMyDownloaderObj){
-		return;
-	}
-
-	JNIEnv* env;
-	if ((*globalVm)->GetEnv(globalVm, (void**)(&env), JNI_VERSION_1_6) != JNI_OK) {
-		return;
-	}
-	(*env)->DeleteGlobalRef(env, globalMyDownloaderObj);
 }

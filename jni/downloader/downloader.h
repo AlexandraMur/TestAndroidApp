@@ -1,6 +1,6 @@
 #ifndef DOWNLOADER__H
 #define DOWNLOADER__H
-
+#include <jni.h>
 #include <stdbool.h>
 #include <stdint.h>
 
@@ -26,6 +26,7 @@ typedef struct {
 Downloader* downloader_create(IDownloader_Cb*, void* args);
 void downloader_destroy(Downloader*);
 int downloader_add(Downloader *d, char* url, char* name_of_file);
+int downloader_OnLoad(JavaVM *vm_);
 
 #ifdef __cplusplus
 }

@@ -4,7 +4,7 @@ include $(CLEAR_VARS)
 LOCAL_CFLAGS := -std=gnu99
 LOCAL_MODULE := downloader
 LOCAL_SRC_FILES := downloader/downloader.c
-include $(BUILD_SHARED_LIBRARY)
+include $(BUILD_STATIC_LIBRARY)
 
 
 include $(CLEAR_VARS)
@@ -34,8 +34,8 @@ include $(CLEAR_VARS)
 LOCAL_CFLAGS := -std=gnu99
 LOCAL_MODULE := test
 LOCAL_SRC_FILES := test.c
-LOCAL_STATIC_LIBRARIES += parser
-LOCAL_STATIC_LIBRARIES += downloader
+LOCAL_SHARED_LIBRARIES += libparser
+LOCAL_STATIC_LIBRARIES += libdownloader
 LOCAL_LDFLAGS := -llog
 include $(BUILD_SHARED_LIBRARY) 
   
