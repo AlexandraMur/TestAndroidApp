@@ -10,6 +10,8 @@
 #include <stdio.h>
 #include "downloader.h"
 
+#include <android/log.h>
+
 struct Downloader {
 	FILE *file;
 	int alive;
@@ -170,14 +172,14 @@ exit:
 #else
 static void download(Downloader *d) {
 	JNIEnv *pEnv = NULL;
-		if ((*globalVm)->AttachCurrentThread(globalVm, &pEnv, NULL) != JNI_OK){
-			goto exit;
-		}
-		jstring jStr = (*pEnv)->NewStringUTF(pEnv, "http://idev.by/android/22971/");
-		long args = NULL;
-		(*pEnv)->CallVoidMethod(pEnv, globalMyDownloaderObj, globalDownloadID, jStr, args);
-	exit:
-		(*globalVm)->DetachCurrentThread(globalVm);
+	if ((*globalVm)->AttachCurrentThread(globalVm, &pEnv, NULL) != JNI_OK){
+		goto exit;
+	}
+	jstring jStr = (*pEnv)->NewStringUTF(pEnv, d->_entry->url);
+	long args = NULL;
+	(*pEnv)->CallVoidMethod(pEnv, globalMyDownloaderObj, globalDownloadID, jStr, args);
+exit:
+	(*globalVm)->DetachCurrentThread(globalVm);
 }
 #endif //USE_CURL
 

@@ -12,20 +12,20 @@ extern "C" {
 /*
  * Class:     com_example_testandroidapp_MyDownloader
  * Method:    writeCallback
- * Signature: (I)V
+ * Signature: (IJ)V
  */
 JNIEXPORT void JNICALL Java_com_example_testandroidapp_MyDownloader_writeCallback
-  (JNIEnv *, jobject, jint);
+  (JNIEnv *, jobject, jint, jlong);
 
 /*
  * Class:     com_example_testandroidapp_MyDownloader
  * Method:    progressCallback
- * Signature: ([BII)V
+ * Signature: ([BIIJ)V
  */
 JNIEXPORT void JNICALL Java_com_example_testandroidapp_MyDownloader_progressCallback
-  (JNIEnv *, jobject, jbyteArray, jint, jint);
+  (JNIEnv *, jobject, jbyteArray, jint, jint, jlong);
 
 #ifdef __cplusplus
-}	//extern "C"
+}
 #endif
 #endif

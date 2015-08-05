@@ -4,6 +4,7 @@ include $(CLEAR_VARS)
 LOCAL_CFLAGS := -std=gnu99
 LOCAL_MODULE := downloader
 LOCAL_SRC_FILES := downloader/downloader.c
+LOCAL_LDFLAGS := -llog
 include $(BUILD_STATIC_LIBRARY)
 
 

@@ -57,7 +57,6 @@ public class MyDownloader {
 	        	currentBytes += bytesRead;
 	            progressCallback(buffer, contentLength, currentBytes, args);
 	        }
-	        
 	        writeCallback(currentBytes, args);
 	        
 	        inputStream.close();

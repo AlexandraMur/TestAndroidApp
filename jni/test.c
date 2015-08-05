@@ -45,19 +45,6 @@ static void my_complete(Downloader *d, void *args, char *url, char *name_of_file
 	printf ("%zu file/s in stack\n", number_files_in_stack);
 }
 
-/*
-static void downloadThroughtJava(){
-	JNIEnv *pEnv = NULL;
-	if ((*globalVm)->AttachCurrentThread(globalVm, &pEnv, NULL) != JNI_OK){
-		goto exit;
-	}
-	jstring jStr = (*pEnv)->NewStringUTF(pEnv, "http://idev.by/android/22971/");
-	long args = NULL;
-	(*pEnv)->CallVoidMethod(pEnv, globalMyDownloaderObj, globalDownloadID, jStr, args);
-exit:
-	(*globalVm)->DetachCurrentThread(globalVm);
-}
-*/
 static void workFlow (){
 	IDownloader_Cb my_callbacks;
 	my_callbacks.complete = &my_complete;
@@ -86,7 +73,7 @@ static void workFlow (){
 		goto exit;
 	}
 
-	char *url = "http://localhost/test2.txt";
+	char *url = "http://bakhirev.biz/book/index.html";
 	char *name = "test2.txt";
 
 	pthread_mutex_lock(&sync.mutex);
@@ -150,15 +137,12 @@ jint JNI_OnLoad (JavaVM *vm, void *reserved){
 		return JNI_ERR;
 	}
 
-	int downl_onload = downloader_OnLoad(vm);
-	if (downl_onload != JNI_VERSION_1_6){
-		return JNI_ERR;
-	}
-
 	JNIEnv* env;
 	if ((*vm)->GetEnv(vm, (void**)(&env), JNI_VERSION_1_6) != JNI_OK) {
 		return JNI_ERR;
 	}
+
+	__android_log_write(ANDROID_LOG_INFO, "test.c", "JNI_OnLoad");
 
 	jclass _class = (*env)->FindClass(env,"com/example/testandroidapp/MainActivity");
 	if (!_class){
@@ -166,4 +150,10 @@ jint JNI_OnLoad (JavaVM *vm, void *reserved){
 	}
 
 	(*env)->RegisterNatives(env, _class, methodTable, sizeof(methodTable) / sizeof(methodTable[0]) );
+
+	int downl_onload = downloader_OnLoad(vm);
+	if (downl_onload != JNI_VERSION_1_6){
+		return JNI_ERR;
+	}
+	return JNI_VERSION_1_6;
 }
