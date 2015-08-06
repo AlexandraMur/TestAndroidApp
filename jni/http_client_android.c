@@ -4,7 +4,7 @@
 #include <android/log.h>
 
 struct HttpClient {
-
+	IHttpClientCb *cb;
 };
 
 static JavaVM *globalVm;
@@ -35,8 +35,12 @@ static JNINativeMethod methodTable[] = {
 };
 
 
-HttpClient* http_client_create (void* args){
+HttpClient* http_client_create (IHttpClientCb *cb, void* args){
+	if (!cb){
+		return NULL;
+	}
 	HttpClient *c = calloc(1, sizeof(struct HttpClient));
+	c->cb = cb;
 	return c;
 }
 
@@ -61,7 +65,7 @@ void http_client_reset (HttpClient *c){
 }
 
 void http_client_destroy (HttpClient *c){
-	//TODO
+	free(c);
 }
 
 int http_client_on_load (JavaVM *vm_){

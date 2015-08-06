@@ -1,13 +1,18 @@
 #ifdef USE_CURL
 #include "http_client.h"
+#include "curl/curl.h"
 
-static int progress_callback(void *_d, curl_off_t dltotal, curl_off_t dlnow, curl_off_t ultotal, curl_off_t ulnow){
-	Downloader* d = (Downloader*)_d;
+struct HttpClient {
+	IHttpClientCb *cb;
+};
+
+static int progress_callback(void *_c, curl_off_t dltotal, curl_off_t dlnow, curl_off_t ultotal, curl_off_t ulnow){
+	HttpClient* c = (HttpClient*)_c;
 	if (dlnow == 0 || dltotal ==0){
 		return 0;
 	}
-	if (d->my_callbacks->progress){
-		d->my_callbacks->progress(d, d->args, d->_entry->url, d->_entry->name_of_file, dlnow, dltotal);
+	if (c->cb->progress){
+		c->cb->progress(d, c->args, c->_entry->url, c->_entry->name_of_file, dlnow, dltotal);
 	}
   	return 0;
 }
@@ -15,12 +20,14 @@ static int progress_callback(void *_d, curl_off_t dltotal, curl_off_t dlnow, cur
 static size_t callback(void *ptr, size_t size, size_t nmemb, Downloader* d){
     size_t _size = 0;
     if (d->alive){
-            _size = fwrite(ptr, size, nmemb, d->file);
+           // _size = fwrite(ptr, size, nmemb, d->file); мы же в память сохраняем?!
     }
 }
 
-HttpClient* http_client_create (IDownloader_Cb *cb, void* args){
-	//TODO
+HttpClient* http_client_create (IHttpClientCb *cb, void* args){
+	HttpClient *c = calloc(1, sizeof(struct HttpClient));
+	c->cb = cb;
+	return c;
 }
 
 HttpClientStatus http_client_download (HttpClient *c, const char *url){
@@ -30,18 +37,18 @@ HttpClientStatus http_client_download (HttpClient *c, const char *url){
 		goto exit;
 	}
 
-	d->file = NULL;
-		d->file = fopen(d->_entry->name_of_file,"wb");
+	//d->file = NULL;
+	//d->file = fopen(d->_entry->name_of_file,"wb");
 
-	if(!d->file) {
-		goto exit;
-	}
+	//if(!d->file) {
+		//goto exit;
+	//}
 
-	curl_easy_setopt(curl, CURLOPT_URL, d->_entry->url);
+	curl_easy_setopt(curl, CURLOPT_URL, url);
 	curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, callback);
-	curl_easy_setopt(curl, CURLOPT_WRITEDATA, d);
+	curl_easy_setopt(curl, CURLOPT_WRITEDATA, c);
 	curl_easy_setopt(curl, CURLOPT_XFERINFOFUNCTION, progress_callback);
-	curl_easy_setopt(curl, CURLOPT_XFERINFODATA, d);
+	curl_easy_setopt(curl, CURLOPT_XFERINFODATA, c);
 	curl_easy_setopt(curl, CURLOPT_NOPROGRESS, 0L);
 	CURLcode code = curl_easy_perform(curl);
 	fclose(d->file);
@@ -66,7 +73,7 @@ void http_client_reset (HttpClient *c){
 }
 
 void http_client_destroy (HttpClient *c){
-	//TODO
+	free(c);
 }
 
 #endif //USE_CURL

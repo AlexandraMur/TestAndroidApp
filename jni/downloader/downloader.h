@@ -3,7 +3,7 @@
 #include <jni.h>
 #include <stdbool.h>
 #include <stdint.h>
-
+#include <stdlib.h>
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -19,11 +19,12 @@ enum DownloaderStatus {
 };
 
 typedef struct {
-	void (*complete)(Downloader *d, void *args, char *url, char *name_of_file, int status, size_t number_files_in_stack);
-	void (*progress)(Downloader *d, void *args, char *url, char *name_of_file, int64_t curr_size, int64_t total_size);
+	void (*complete)(Downloader *d, void *args, int status, size_t number_files_in_stack);
+	void (*progress)(Downloader *d, void *args, int64_t curr_size, int64_t total_size);
 } IDownloader_Cb;
 
-Downloader* downloader_create(IDownloader_Cb*, void* args);
+
+Downloader* downloader_create(IDownloader_Cb *, void* args);
 void downloader_destroy(Downloader*);
 int downloader_add(Downloader *d, char* url, char* name_of_file);
 int downloader_OnLoad(JavaVM *vm_);

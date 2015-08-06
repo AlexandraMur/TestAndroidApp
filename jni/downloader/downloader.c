@@ -106,12 +106,21 @@ Downloader *downloader_create(IDownloader_Cb *my_callbacks, void *args){
 	if (!d){
 		goto fail;
 	}
+
+	IHttpClientCb *cb = calloc(1, sizeof(IHttpClientCb));
+	if (!cb){
+		goto fail;
+	}
+
+	cb->data = my_callbacks->complete;
+	cb->progress = my_callbacks->progress;
+
 	d->alive = 1;
 	d->my_callbacks = my_callbacks;
 	d->args = args;
 	d->queue_size = 0;	 
 	TAILQ_INIT(&d->head);
-	d->http_client = http_client_create(args);
+	d->http_client = http_client_create(cb, args);
 	d->mutex_flag = !pthread_mutex_init(&d->mutex, NULL);
     d->cv_flag = !pthread_cond_init(&d->conditional_variable, NULL);
 	d->thread_flag = !pthread_create(&d->thread, NULL, work_flow, (void*)d);
@@ -119,7 +128,6 @@ Downloader *downloader_create(IDownloader_Cb *my_callbacks, void *args){
 		goto fail;
 	}
 	return d;
-
 fail:
 	downloader_destroy(d);
 	return NULL;
