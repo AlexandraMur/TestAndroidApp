@@ -28,6 +28,7 @@ void downloader_destroy(Downloader*);
 int downloader_add(Downloader *d, char* url, char* name_of_file);
 int downloader_OnLoad(JavaVM *vm_);
 
+
 #ifdef __cplusplus
 }
 #endif
