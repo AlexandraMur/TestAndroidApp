@@ -1,29 +1,6 @@
 #if defined(ANDROID) && !defined(USE_CURL)
 #include "http_client.h"
 
-struct HttpClient {
-	FILE *file;
-	int alive;
-    pthread_mutex_t mutex;
-    pthread_cond_t conditional_variable;
-    pthread_t thread;
-    struct tailhead *headp;
-    TAILQ_HEAD(tailhead, entry) head;
-	IDownloader_Cb *my_callbacks;
-	void *args;
-	bool thread_flag;
-	bool mutex_flag;
-	bool cv_flag;
-	struct entry *_entry;
-	size_t queue_size;
-};
-
-struct entry {
-    char *url;
-    char *name_of_file;
-    TAILQ_ENTRY(entry) entries;
-};
-
 static JavaVM *globalVm;
 static jclass globalMyDownloaderID;
 static jmethodID globalDownloadID;
