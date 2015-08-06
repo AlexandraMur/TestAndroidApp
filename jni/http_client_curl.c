@@ -3,7 +3,6 @@
 
 static int progress_callback(void *_d, curl_off_t dltotal, curl_off_t dlnow, curl_off_t ultotal, curl_off_t ulnow){
 	Downloader* d = (Downloader*)_d;
-
 	if (dlnow == 0 || dltotal ==0){
 		return 0;
 	}
@@ -18,10 +17,9 @@ static size_t callback(void *ptr, size_t size, size_t nmemb, Downloader* d){
     if (d->alive){
             _size = fwrite(ptr, size, nmemb, d->file);
     }
-    return _size;
 }
 
-HttpClient* http_client_create (HttpClient *c, void* args){
+HttpClient* http_client_create (IDownloader_Cb *cb, void* args){
 	//TODO
 }
 

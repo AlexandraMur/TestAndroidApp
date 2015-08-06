@@ -1,5 +1,11 @@
 #if defined(ANDROID) && !defined(USE_CURL)
 #include "http_client.h"
+#include <jni.h>
+#include <android/log.h>
+
+struct HttpClient {
+
+};
 
 static JavaVM *globalVm;
 static jclass globalMyDownloaderID;
@@ -29,11 +35,14 @@ static JNINativeMethod methodTable[] = {
 };
 
 
-HttpClient* http_client_create (HttpClient *c, void* args){
-	//TODO
+HttpClient* http_client_create (void* args){
+	HttpClient *c = calloc(1, sizeof(struct HttpClient));
+	return c;
 }
 
+
 HttpClientStatus http_client_download (HttpClient *c, const char *url){
+	HttpClientStatus result = HTTP_CLIENT_FAIL;
 	JNIEnv *pEnv = NULL;
 	if ((*globalVm)->AttachCurrentThread(globalVm, &pEnv, NULL) != JNI_OK){
 		goto exit;
@@ -41,8 +50,10 @@ HttpClientStatus http_client_download (HttpClient *c, const char *url){
 	jstring jStr = (*pEnv)->NewStringUTF(pEnv, url);
 	long args = NULL;
 	(*pEnv)->CallVoidMethod(pEnv, globalMyDownloaderObj, globalDownloadID, jStr, args);
+	result = HTTP_CLIENT_OK;
 exit:
 	(*globalVm)->DetachCurrentThread(globalVm);
+	return result;
 }
 
 void http_client_reset (HttpClient *c){
@@ -88,7 +99,6 @@ int http_client_on_load (JavaVM *vm_){
 	if (!globalDownloadID){
 		return JNI_ERR;
 	}
-
 	return JNI_VERSION_1_6;
 }
 

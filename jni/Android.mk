@@ -2,8 +2,18 @@ LOCAL_PATH := $(call my-dir)
 
 include $(CLEAR_VARS)
 LOCAL_CFLAGS += -std=gnu99
+LOCAL_MODULE := http_client
+LOCAL_SRC_FILES := http_client_android.c http_client_curl.c
+LOCAL_LDFLAGS := -llog
+LOCAL_CFLAGS += -DANDROID
+include $(BUILD_STATIC_LIBRARY)
+
+
+include $(CLEAR_VARS)
+LOCAL_CFLAGS += -std=gnu99
 LOCAL_MODULE := downloader
 LOCAL_SRC_FILES := downloader/downloader.c
+LOCAL_STATIC_LIBRARIES += libhttp_client
 LOCAL_LDFLAGS := -llog
 LOCAL_CFLAGS += -DANDROID
 include $(BUILD_STATIC_LIBRARY)
@@ -30,7 +40,7 @@ include $(CLEAR_VARS)
 LOCAL_CFLAGS += -std=gnu99
 LOCAL_MODULE := test
 LOCAL_SRC_FILES := test.c
-LOCAL_SHARED_LIBRARIES += libparser
+LOCAL_STATIC_LIBRARIES += libparser
 LOCAL_STATIC_LIBRARIES += libdownloader
 LOCAL_LDFLAGS := -llog
 LOCAL_CFLAGS += -DANDROID
