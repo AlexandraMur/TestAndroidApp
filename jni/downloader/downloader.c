@@ -10,7 +10,6 @@
 #include <stdio.h>
 #include "downloader.h"
 #if defined(ANDROID) && !defined(USE_CURL)
-#include "com_example_testandroidapp_MyDownloader.h"
 #include <android/log.h>
 #endif //defined(ANDROID) && !defined(USE_CURL)
 

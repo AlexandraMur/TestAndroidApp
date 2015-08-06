@@ -1,4 +1,3 @@
-#include "com_example_testandroidapp_MainActivity.h"
 #include <android/log.h>
 #include <stdio.h>
 #include <unistd.h>
