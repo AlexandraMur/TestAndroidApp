@@ -1,13 +1,11 @@
 #ifndef HTTP_CLIENT_H_
 #define HTTP_CLIENT_H_
-#define ANDROID 1
 
+#define ANDROID 1
 #if ANDROID
 #include <jni.h>
 #endif //ANDROID
 
-//#include <stdbool.h>
-//#include <stdint.h>
 #include <stdlib.h>
 
 #ifdef __cplusplus
