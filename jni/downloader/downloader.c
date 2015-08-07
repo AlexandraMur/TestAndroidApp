@@ -9,6 +9,7 @@
 #include "http_client.h"
 
 #define ANDROID 1
+
 struct Downloader {
 	FILE *file;
 	int alive;
@@ -70,7 +71,7 @@ static void destroy_entry(struct entry *_entry){
 	_entry = NULL;
 }
 
-struct entry* create_entry(char *url, char *name_of_file){
+struct entry* create_entry(const char *url, const char *name_of_file){
 	struct entry *_entry = malloc(sizeof(struct entry));
 	if (!_entry){
 		return NULL;
@@ -170,7 +171,7 @@ void downloader_destroy(Downloader *d) {
 	free(d);	
 }
 
-int downloader_add(Downloader *d, char *url, char *name_of_file) {
+int downloader_add(Downloader *d, const char *url, const char *name_of_file) {
 	if (!d) {
 		return DOWNLOADER_STATUS_ERROR;
 	}

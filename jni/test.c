@@ -1,7 +1,7 @@
 #include <android/log.h>
+
 #include <stdio.h>
-#include <unistd.h>
-#include <inttypes.h>
+#include <stdlib.h>
 #include <pthread.h>
 #include <downloader/downloader.h>
 #include <parser/parser.h>
@@ -29,6 +29,14 @@ static void progressCallback (JNIEnv *pEnv, jobject pThis, jbyteArray byteArray,
 		__android_log_write(ANDROID_LOG_INFO, "test.c", "Progress Callback");
 	}
 	return;
+}
+
+static void semaphore(struct syncronize *sync){
+	pthread_mutex_lock(&sync->mutex);
+		while(sync->num){
+			pthread_cond_wait(&sync->cv, &sync->mutex);
+		}
+		pthread_mutex_unlock(&sync->mutex);
 }
 
 static void workFlow (){
@@ -71,11 +79,7 @@ static void workFlow (){
 		goto exit;
 	}
 
-	pthread_mutex_lock(&sync.mutex);
-	while(sync.num){
-		pthread_cond_wait(&sync.cv, &sync.mutex);
-	}
-	pthread_mutex_unlock(&sync.mutex);
+	semaphore(&sync);
 
 	playlist = playlist_create();
 	if (!playlist){
@@ -89,12 +93,7 @@ static void workFlow (){
 		pthread_mutex_unlock(&sync.mutex);
 		downloader_add(d, playlist->items[i].uri, playlist->items[i].name);
 	}
-
-	pthread_mutex_lock(&sync.mutex);
-	while(sync.num){
-		pthread_cond_wait(&sync.cv, &sync.mutex);
-	}
-	pthread_mutex_unlock(&sync.mutex);
+	semaphore(&sync);
 
 exit:
 	playlist_destroy(playlist);
@@ -137,9 +136,6 @@ jint JNI_OnLoad (JavaVM *vm, void *reserved){
 	if (!_class){
 		return JNI_ERR;
 	}
-
 	(*env)->RegisterNatives(env, _class, methodTable, sizeof(methodTable) / sizeof(methodTable[0]) );
-
-	__android_log_write(ANDROID_LOG_INFO, "test.c", "JNI_OnLoad");
 	return JNI_VERSION_1_6;
 }

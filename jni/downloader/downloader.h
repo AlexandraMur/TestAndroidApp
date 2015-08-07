@@ -26,7 +26,7 @@ typedef struct {
 
 Downloader* downloader_create(IDownloader_Cb *, void* args);
 void downloader_destroy(Downloader*);
-int downloader_add(Downloader *d, char* url, char* name_of_file);
+int downloader_add(Downloader *d, const char* url, const char* name_of_file);
 int downloader_OnLoad(JavaVM *vm_);
 
 
