@@ -60,7 +60,7 @@ HttpClientStatus http_client_download (HttpClient *c, const char *url){
 	(*pEnv)->CallVoidMethod(pEnv, globalMyDownloaderObj, globalDownloadID, jStr, args);
 	result = HTTP_CLIENT_OK;
 exit:
-	(*globalVm)->DetachCurrentThread(globalVm);
+	//(*globalVm)->DetachCurrentThread(globalVm);
 	return result;
 }
 
@@ -108,4 +108,9 @@ int http_client_on_load (JavaVM *vm_){
 	}
 	return JNI_VERSION_1_6;
 }
+
+void http_client_android_detach(void){
+	(*globalVm)->DetachCurrentThread(globalVm);
+}
+
 #endif //defined(ANDROID) && !defined(USE_CURL)

@@ -103,6 +103,9 @@ static void *work_flow(void* _d){
 		d->queue_size--;
 		pthread_mutex_unlock(&d->mutex);
 		http_client_download(d->http_client, d->_entry->url);
+		#if ANDROID
+		http_client_android_detach();
+		#endif
 		destroy_entry(d->_entry);
     }
     return NULL;

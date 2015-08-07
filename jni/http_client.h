@@ -34,6 +34,7 @@ void http_client_destroy (HttpClient *c);
 
 #ifdef ANDROID
 	int http_client_on_load(JavaVM *vm_);
+	void http_client_android_detach(void);
 #endif
 
 #ifdef __cplusplus
