@@ -1,7 +1,11 @@
 #ifndef HTTP_CLIENT_H_
 #define HTTP_CLIENT_H_
+#define ANDROID 1
 
+#if ANDROID
 #include <jni.h>
+#endif //ANDROID
+
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -31,7 +35,7 @@ void http_client_reset (HttpClient *c);
 void http_client_destroy (HttpClient *c);
 
 #ifdef ANDROID
-	int http_client_on_load (JavaVM *vm_);
+	int http_client_on_load(JavaVM *vm_);
 #endif
 
 #ifdef __cplusplus

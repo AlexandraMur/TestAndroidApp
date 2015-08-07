@@ -8,6 +8,7 @@
 #include "downloader.h"
 #include "http_client.h"
 
+#define ANDROID 1
 struct Downloader {
 	FILE *file;
 	int alive;
@@ -31,6 +32,14 @@ struct entry {
     char *name_of_file;
     TAILQ_ENTRY(entry) entries;
 };
+
+void my_data(HttpClient *c, void *arg, const void *buffer, size_t size){
+	//TODO
+}
+
+void my_progress(HttpClient *c, void *arg, int64_t total_size, int64_t curr_size){
+	//TODO
+}
 
 #if defined(ANDROID) && !defined(USE_CURL)
 int downloader_OnLoad(JavaVM *vm){
@@ -102,6 +111,7 @@ Downloader *downloader_create(IDownloader_Cb *my_callbacks, void *args){
 	if (!my_callbacks) {
 		return NULL;
 	}
+
 	Downloader *d = calloc(1, sizeof(struct Downloader));
 	if (!d){
 		goto fail;
@@ -112,8 +122,8 @@ Downloader *downloader_create(IDownloader_Cb *my_callbacks, void *args){
 		goto fail;
 	}
 
-	cb->data = my_callbacks->complete;
-	cb->progress = my_callbacks->progress;
+	cb->data = &my_data;
+	cb->progress = &my_progress;
 
 	d->alive = 1;
 	d->my_callbacks = my_callbacks;

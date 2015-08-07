@@ -14,40 +14,27 @@ struct syncronize {
 	int cv_flag;
 };
 
-static void my_progress(Downloader *d, void *args, char *url, char *name_of_file, int64_t curr_size, int64_t total_size){
-	int64_t curr_percent = (curr_size * 100) / total_size;
-	printf("DOWN %s: %" PRId64 " of 100%%\n", name_of_file, curr_percent);
+static void writeCallback (JNIEnv *pEnv, jobject pThis, jint size, jlong args){
+	__android_log_write(ANDROID_LOG_INFO, "test.c", "Downloaded");
+	return;
 }
 
-static void my_complete(Downloader *d, void *args, char *url, char *name_of_file, int status, size_t number_files_in_stack){
-	struct syncronize *sync = (struct syncronize*) args;
-	if (status == DOWNLOADER_STATUS_ERROR){
-		printf("ERROR %s\n", name_of_file);
+static void progressCallback (JNIEnv *pEnv, jobject pThis, jbyteArray byteArray, jint sizeTotal, jint sizeCurr, jlong args){
+	if (sizeTotal == 0){
+		//print only current size;
+		__android_log_write(ANDROID_LOG_INFO, "test.c", "Current size");
+	} else {
+		//print percents
+		int currPercent = (sizeCurr * 100) / sizeTotal;
+		__android_log_write(ANDROID_LOG_INFO, "test.c", "Progress Callback");
 	}
-
-	if(status == DOWNLOADER_STATUS_CONT){
-		printf("File wasn't modified\n");
-	}
-
-	if (status == DOWNLOADER_STATUS_OK){
-		printf("DOWNLOADED %s\n", name_of_file);
-	}
-	if (status == DOWNLOADER_STATUS_EXIT){
-		printf("EXIT\n");
-	}
-
-	pthread_mutex_lock(&sync->mutex);
-	sync->num--;
-	pthread_cond_broadcast(&sync->cv);
-	pthread_mutex_unlock(&sync->mutex);
-
-	printf ("%zu file/s in stack\n", number_files_in_stack);
+	return;
 }
 
 static void workFlow (){
 	IDownloader_Cb my_callbacks;
-	my_callbacks.complete = &my_complete;
-	my_callbacks.progress = &my_progress;
+	my_callbacks.complete = &writeCallback;
+	my_callbacks.progress = &progressCallback;
 
 	Downloader *d = NULL;
 	Playlist *playlist = NULL;
@@ -72,8 +59,8 @@ static void workFlow (){
 		goto exit;
 	}
 
-	char *url = "http://bakhirev.biz/book/index.html";
-	char *name = "test2.txt";
+	const char *url = "http://bakhirev.biz/book/index.html";
+	const char *name = "test2.txt";
 
 	pthread_mutex_lock(&sync.mutex);
 	sync.num++;
@@ -136,12 +123,15 @@ jint JNI_OnLoad (JavaVM *vm, void *reserved){
 		return JNI_ERR;
 	}
 
+	int downl_onload = downloader_OnLoad(vm);
+	if (downl_onload != JNI_VERSION_1_6){
+		return JNI_ERR;
+	}
+
 	JNIEnv* env;
 	if ((*vm)->GetEnv(vm, (void**)(&env), JNI_VERSION_1_6) != JNI_OK) {
 		return JNI_ERR;
 	}
-
-	__android_log_write(ANDROID_LOG_INFO, "test.c", "JNI_OnLoad");
 
 	jclass _class = (*env)->FindClass(env,"com/example/testandroidapp/MainActivity");
 	if (!_class){
@@ -150,9 +140,6 @@ jint JNI_OnLoad (JavaVM *vm, void *reserved){
 
 	(*env)->RegisterNatives(env, _class, methodTable, sizeof(methodTable) / sizeof(methodTable[0]) );
 
-	int downl_onload = downloader_OnLoad(vm);
-	if (downl_onload != JNI_VERSION_1_6){
-		return JNI_ERR;
-	}
+	__android_log_write(ANDROID_LOG_INFO, "test.c", "JNI_OnLoad");
 	return JNI_VERSION_1_6;
 }

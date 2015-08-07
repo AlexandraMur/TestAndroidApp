@@ -13,7 +13,7 @@ public class MyDownloader {
 	private static final int BUFFER_SIZE = 4096;
 	
 	static {
-		System.loadLibrary("callbacks");
+		System.loadLibrary("httpclient");
 	}
 	
 	private native void writeCallback(int size, long args);

@@ -1,3 +1,4 @@
+#define ANDROID 1
 #if defined(ANDROID) && !defined(USE_CURL)
 #include "http_client.h"
 #include <jni.h>
@@ -34,7 +35,6 @@ static JNINativeMethod methodTable[] = {
 	{"progressCallback", "([BIIJ)V", (void*)progressCallback}
 };
 
-
 HttpClient* http_client_create (IHttpClientCb *cb, void* args){
 	if (!cb){
 		return NULL;
@@ -49,7 +49,11 @@ HttpClientStatus http_client_download (HttpClient *c, const char *url){
 	HttpClientStatus result = HTTP_CLIENT_FAIL;
 	JNIEnv *pEnv = NULL;
 	if ((*globalVm)->AttachCurrentThread(globalVm, &pEnv, NULL) != JNI_OK){
-		goto exit;
+		//goto exit;
+	}
+	if ((*globalVm)->GetEnv(globalVm, (void**)(&pEnv), JNI_VERSION_1_6) != JNI_OK) {
+		__android_log_write(ANDROID_LOG_INFO, "http_client_android.c", "Getenv fails");
+		return JNI_ERR;
 	}
 	jstring jStr = (*pEnv)->NewStringUTF(pEnv, url);
 	long args = NULL;
@@ -69,20 +73,24 @@ void http_client_destroy (HttpClient *c){
 }
 
 int http_client_on_load (JavaVM *vm_){
+	__android_log_write(ANDROID_LOG_INFO, "http_client_android.c", "JNI_OnLoad");
 	globalVm = vm_;
 
 	JNIEnv* env;
 	if ((*globalVm)->GetEnv(globalVm, (void**)(&env), JNI_VERSION_1_6) != JNI_OK) {
+		__android_log_write(ANDROID_LOG_INFO, "http_client_android.c", "Getenv fails");
 		return JNI_ERR;
 	}
 
 	globalMyDownloaderID = (*env)->FindClass(env, "com/example/testandroidapp/MyDownloader");
 	if (!globalMyDownloaderID){
+		__android_log_write(ANDROID_LOG_INFO, "http_client_android.c", "globalMyDownloaderID fails");
 		return JNI_ERR;
 	}
 
 	jclass myDownloaderObj = (*env)->AllocObject(env, globalMyDownloaderID);
 	if (!myDownloaderObj){
+		__android_log_write(ANDROID_LOG_INFO, "http_client_android.c", "jclass fails");
 		return JNI_ERR;
 	}
 
@@ -103,6 +111,7 @@ int http_client_on_load (JavaVM *vm_){
 	if (!globalDownloadID){
 		return JNI_ERR;
 	}
+	__android_log_write(ANDROID_LOG_INFO, "http_client_android.c", "JNI_OnLoad");
 	return JNI_VERSION_1_6;
 }
 
