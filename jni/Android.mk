@@ -6,7 +6,7 @@ LOCAL_MODULE := httpclient
 LOCAL_SRC_FILES := http_client_android.c http_client_curl.c
 LOCAL_LDFLAGS += -llog
 LOCAL_LDLAGS += -DANDROID
-include $(BUILD_SHARED_LIBRARY)
+include $(BUILD_STATIC_LIBRARY)
 
 
 include $(CLEAR_VARS)

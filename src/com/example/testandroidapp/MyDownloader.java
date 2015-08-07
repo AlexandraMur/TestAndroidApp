@@ -11,14 +11,9 @@ import android.util.Log;
 public class MyDownloader {
 	private static final String TAG = "MyDownloader";
 	private static final int BUFFER_SIZE = 4096;
-	
-	static {
-		System.loadLibrary("httpclient");
-	}
-	
+
 	private native void writeCallback(int size, long args);
 	private native void progressCallback(byte buffer[], int sizeTotal, int sizeCurr, long args);
-	
 	
 	public MyDownloader(){}
 	
