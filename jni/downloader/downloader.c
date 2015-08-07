@@ -35,7 +35,7 @@ struct entry {
 };
 
 void my_data(HttpClient *c, void *arg, const void *buffer, size_t size){
-	//TODO
+	//TODO;
 }
 
 void my_progress(HttpClient *c, void *arg, int64_t total_size, int64_t curr_size){

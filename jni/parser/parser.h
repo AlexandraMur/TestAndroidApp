@@ -24,7 +24,7 @@ struct Playlist{
 typedef struct Playlist Playlist;
 
 Playlist* playlist_create();
-bool playlist_parse(Playlist *playlist, char* name_of_file);
+bool playlist_parse(Playlist *playlist, const char* name_of_file);
 void playlist_destroy(Playlist *playlist);
 
 #ifdef __cplusplus

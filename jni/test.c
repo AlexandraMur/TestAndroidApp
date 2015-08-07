@@ -14,18 +14,18 @@ struct syncronize {
 	int cv_flag;
 };
 
-static void writeCallback (JNIEnv *pEnv, jobject pThis, jint size, jlong args){
+static void my_complete (Downloader *d, void *args, int status, size_t number_files_in_stack){
 	__android_log_write(ANDROID_LOG_INFO, "test.c", "Downloaded");
 	return;
 }
 
-static void progressCallback (JNIEnv *pEnv, jobject pThis, jbyteArray byteArray, jint sizeTotal, jint sizeCurr, jlong args){
-	if (sizeTotal == 0){
+static void my_progress (Downloader *d, void *args, int64_t curr_size, int64_t total_size){
+	if (total_size == 0){
 		//print only current size;
 		__android_log_write(ANDROID_LOG_INFO, "test.c", "Current size");
 	} else {
 		//print percents
-		int currPercent = (sizeCurr * 100) / sizeTotal;
+		int currPercent = (curr_size * 100) / total_size;
 		__android_log_write(ANDROID_LOG_INFO, "test.c", "Progress Callback");
 	}
 	return;
@@ -41,8 +41,8 @@ static void semaphore(struct syncronize *sync){
 
 static void workFlow (){
 	IDownloader_Cb my_callbacks;
-	my_callbacks.complete = &writeCallback;
-	my_callbacks.progress = &progressCallback;
+	my_callbacks.complete = &my_complete;
+	my_callbacks.progress = &my_progress;
 
 	Downloader *d = NULL;
 	Playlist *playlist = NULL;

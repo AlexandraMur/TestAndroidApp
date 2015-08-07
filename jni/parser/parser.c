@@ -35,7 +35,7 @@ static void clear_playlist(Playlist *playlist){
 	}
 }
 
-static char* copy_to_buffer(char* name_of_file){
+static char* copy_to_buffer(const char* name_of_file){
 	off_t size;
 	char *buffer = NULL;
 	FILE *file = fopen(name_of_file, "rb");
@@ -72,7 +72,7 @@ done:
 	return buffer;
 }
 
-bool playlist_parse(Playlist* playlist, char *name_of_file){
+bool playlist_parse(Playlist* playlist, const char *name_of_file){
 	bool result = false;
 
 	if(!playlist){
