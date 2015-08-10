@@ -36,9 +36,9 @@ struct entry {
 void my_data(HttpClient *c, void *arg, const void *buffer, size_t size){
 	__android_log_write(ANDROID_LOG_INFO, "downloader.c", "1");
 	char *name = (char*)arg;
-	FILE *file = fopen("file.txt", "wb");
+	FILE *file = fopen("/sdcard/file.txt", "wb");
 	if (!file){
-		__android_log_write(ANDROID_LOG_INFO, "downloader.c", "2");
+		__android_log_write(ANDROID_LOG_INFO, "downloader.c", "fail");
 		remove(name);
 		return;
 	}
