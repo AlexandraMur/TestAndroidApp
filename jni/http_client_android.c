@@ -47,19 +47,15 @@ HttpClient* http_client_create (IHttpClientCb *cb, void* args){
 
 HttpClientStatus http_client_download (HttpClient *c, const char *url){
 	HttpClientStatus result = HTTP_CLIENT_FAIL;
+	jclass obj = NULL;
 	JNIEnv *pEnv = NULL;
 	if ((*globalVm)->AttachCurrentThread(globalVm, &pEnv, NULL) != JNI_OK){
 		goto exit;
 	}
 
-	if ((*globalVm)->GetEnv(globalVm, (void**)(&pEnv), JNI_VERSION_1_6) != JNI_OK) {
+	obj = (*pEnv)->AllocObject(pEnv, globalMyDownloaderID);
+	if (!obj){
 		return JNI_ERR;
-	}
-	////
-	jclass Obj = (*pEnv)->AllocObject(pEnv, globalMyDownloaderID);
-		if (!Obj){
-
-			return JNI_ERR;
 	}
 
 	jstring jStr = (*pEnv)->NewStringUTF(pEnv, url);
@@ -67,6 +63,9 @@ HttpClientStatus http_client_download (HttpClient *c, const char *url){
 	(*pEnv)->CallVoidMethod(pEnv, globalMyDownloaderObj, globalDownloadID, jStr, args);
 	result = HTTP_CLIENT_OK;
 exit:
+	if (obj){
+		(*pEnv)->DeleteLocalRef(pEnv, obj);
+	}
 	return result;
 }
 
@@ -92,7 +91,7 @@ int http_client_on_load (JavaVM *vm_){
 	}
 
 	globalMyDownloaderID = (*env)->NewGlobalRef(env, tmp);
-	if (!globalMyDownloaderID) {
+	if (!globalMyDownloaderID){
 		return JNI_ERR;
 	}
 
