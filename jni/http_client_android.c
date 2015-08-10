@@ -86,24 +86,13 @@ int http_client_on_load (JavaVM *vm_){
 		return JNI_ERR;
 	}
 
-	globalMyDownloaderID = (*env)->FindClass(env, "com/example/testandroidapp/MyDownloader");
-	if (!globalMyDownloaderID){
+	jclass tmp = (*env)->FindClass(env, "com/example/testandroidapp/MyDownloader");
+	if (!tmp){
 		return JNI_ERR;
 	}
 
-	jclass myDownloaderObj = (*env)->AllocObject(env, globalMyDownloaderID);
-	if (!myDownloaderObj){
-		return JNI_ERR;
-	}
-
-	if (globalMyDownloaderID){
-		(*env)->RegisterNatives(env, globalMyDownloaderID, methodTable, sizeof(methodTable) / sizeof(methodTable[0]) );
-	} else {
-		return JNI_ERR;
-	}
-
-	globalMyDownloaderObj = (*env)->NewGlobalRef(env, myDownloaderObj);
-	if (!globalMyDownloaderObj){
+	globalMyDownloaderID = (*env)->NewGlobalRef(env, tmp);
+	if (!globalMyDownloaderID) {
 		return JNI_ERR;
 	}
 
@@ -111,6 +100,9 @@ int http_client_on_load (JavaVM *vm_){
 	if (!globalDownloadID){
 		return JNI_ERR;
 	}
+
+	(*env)->RegisterNatives(env, globalMyDownloaderID, methodTable, sizeof(methodTable) / sizeof(methodTable[0]) );
+
 	return JNI_VERSION_1_6;
 }
 
