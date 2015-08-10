@@ -4,6 +4,8 @@
 #include <android/log.h>
 
 struct HttpClient {
+	const char *name;
+	const char *url;
 	IHttpClientCb *cb;
 };
 
@@ -18,6 +20,12 @@ static void writeCallback (JNIEnv *pEnv, jobject pThis, jint size, jlong args){
 }
 
 static void progressCallback (JNIEnv *pEnv, jobject pThis, jbyteArray byteArray, jint sizeTotal, jint sizeCurr, jlong args){
+	struct HttpClient *http_client = (struct HttpClient*)args;
+	if (!http_client){
+		return;
+	}
+	http_client->cb->data(http_client, http_client->name, byteArray, sizeCurr);
+
 	if (sizeTotal == 0){
 		//print only current size;
 		__android_log_write(ANDROID_LOG_INFO, TAG, "Current size");
@@ -44,8 +52,13 @@ HttpClient* http_client_create (IHttpClientCb *cb, void* args){
 }
 
 
-HttpClientStatus http_client_download (HttpClient *c, const char *url){
+HttpClientStatus http_client_download (HttpClient *c, const char *url, const char *name_of_file){
 	HttpClientStatus result = HTTP_CLIENT_FAIL;
+	if (!c){
+		return result;
+	}
+	c->name = name_of_file;
+	c->url = url;
 	jclass obj = NULL;
 	JNIEnv *pEnv = NULL;
 	if ((*globalVm)->AttachCurrentThread(globalVm, &pEnv, NULL) != JNI_OK){
@@ -58,8 +71,8 @@ HttpClientStatus http_client_download (HttpClient *c, const char *url){
 	}
 
 	jstring jStr = (*pEnv)->NewStringUTF(pEnv, url);
-	long args = NULL;
-	(*pEnv)->CallVoidMethod(pEnv, obj, globalDownloadID, jStr, args);
+	long args = (long)c;
+	int res = (*pEnv)->CallIntMethod(pEnv, obj, globalDownloadID, jStr, args);
 	result = HTTP_CLIENT_OK;
 exit:
 	if (obj){
@@ -94,7 +107,7 @@ int http_client_on_load (JavaVM *vm_){
 		return JNI_ERR;
 	}
 
-	globalDownloadID = (*env)->GetMethodID(env, globalMyDownloaderID, "download", "(Ljava/lang/String;J)V");
+	globalDownloadID = (*env)->GetMethodID(env, globalMyDownloaderID, "download", "(Ljava/lang/String;J)I");
 	if (!globalDownloadID){
 		return JNI_ERR;
 	}

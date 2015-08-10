@@ -7,6 +7,7 @@
 #include <stdio.h>
 #include "downloader.h"
 #include "http_client.h"
+#include <android/log.h>
 
 struct Downloader {
 	FILE *file;
@@ -33,7 +34,16 @@ struct entry {
 };
 
 void my_data(HttpClient *c, void *arg, const void *buffer, size_t size){
-	//TODO;
+	__android_log_write(ANDROID_LOG_INFO, "downloader.c", "1");
+	char *name = (char*)arg;
+	FILE *file = fopen("file.txt", "wb");
+	if (!file){
+		__android_log_write(ANDROID_LOG_INFO, "downloader.c", "2");
+		remove(name);
+		return;
+	}
+	fwrite(buffer, sizeof(buffer[0]), sizeof(buffer)/sizeof(buffer[0]), file);
+	__android_log_write(ANDROID_LOG_INFO, "downloader.c", " writing in a file");
 }
 
 void my_progress(HttpClient *c, void *arg, int64_t total_size, int64_t curr_size){
@@ -88,7 +98,7 @@ static void *work_flow(void* _d){
     while(1) {
 		pthread_mutex_lock(&d->mutex);
         while (TAILQ_EMPTY(&d->head) && d->alive){
-				pthread_cond_wait(&d->conditional_variable, &d->mutex);
+			pthread_cond_wait(&d->conditional_variable, &d->mutex);
         }
 
         if (!d->alive) {
@@ -100,7 +110,7 @@ static void *work_flow(void* _d){
 		TAILQ_REMOVE(&d->head, d->_entry, entries);
 		d->queue_size--;
 		pthread_mutex_unlock(&d->mutex);
-		http_client_download(d->http_client, d->_entry->url);
+		http_client_download(d->http_client, d->_entry->url, d->_entry->name_of_file);
 		#if ANDROID
 		http_client_android_detach();
 		#endif

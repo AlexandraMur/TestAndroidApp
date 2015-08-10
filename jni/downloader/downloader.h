@@ -35,4 +35,3 @@ int downloader_OnLoad(JavaVM *vm_);
 #endif
 
 #endif//DOWNLOADER__H
-

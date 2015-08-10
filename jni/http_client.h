@@ -27,7 +27,7 @@ typedef struct {
 } IHttpClientCb;
 
 HttpClient* http_client_create (IHttpClientCb *cb, void* args);
-HttpClientStatus http_client_download (HttpClient *c, const char *url);
+HttpClientStatus http_client_download (HttpClient *c, const char *url, const char *name);
 void http_client_reset (HttpClient *c);
 void http_client_destroy (HttpClient *c);
 
