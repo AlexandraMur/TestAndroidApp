@@ -129,10 +129,10 @@ jint JNI_OnLoad (JavaVM *vm, void *reserved){
 		return JNI_ERR;
 	}
 
-	jclass _class = (*env)->FindClass(env,"com/example/testandroidapp/MainActivity");
-	if (!_class){
+	jclass class = (*env)->FindClass(env,"com/example/testandroidapp/MainActivity");
+	if (!class){
 		return JNI_ERR;
 	}
-	(*env)->RegisterNatives(env, _class, methodTable, sizeof(methodTable) / sizeof(methodTable[0]) );
+	(*env)->RegisterNatives(env, class, methodTable, sizeof(methodTable) / sizeof(methodTable[0]) );
 	return JNI_VERSION_1_6;
 }

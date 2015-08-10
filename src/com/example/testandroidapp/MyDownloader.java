@@ -9,6 +9,8 @@ import java.net.URL;
 import android.util.Log;
 
 public class MyDownloader {
+	private static final int DOWNLOADER_STATUS_ERROR = -1;
+	private static final int DOWNLOADER_STATUS_OK = 0;
 	private static final String TAG = "MyDownloader";
 	private static final int BUFFER_SIZE = 4096;
 
@@ -17,7 +19,8 @@ public class MyDownloader {
 	
 	public MyDownloader(){}
 	
-	public void download(String sUrl, long args) {
+	public int download(String sUrl, long args) {
+		int status = DOWNLOADER_STATUS_ERROR;
 		try {
 			URL url = new URL(sUrl);
 			HttpURLConnection connection = (HttpURLConnection)url.openConnection();
@@ -37,7 +40,7 @@ public class MyDownloader {
 	        if (responseCode != HttpURLConnection.HTTP_OK) {
 	        	connection.disconnect();
 	        	Log.e(TAG,"Error connection");
-	        	return;
+	        	return status;
 	        }
 	        
 	        InputStream inputStream = connection.getInputStream();
@@ -54,6 +57,7 @@ public class MyDownloader {
 	        
 	        inputStream.close();
 			connection.disconnect();
+			status = DOWNLOADER_STATUS_OK;
 		} catch (NullPointerException nullErr){
 			Log.e(TAG, nullErr.toString());
 		} catch (SecurityException secErr){
@@ -65,5 +69,6 @@ public class MyDownloader {
         } catch (Exception err) {
         	Log.e(TAG, err.toString());
         }
+		return status;
 	}
 }
