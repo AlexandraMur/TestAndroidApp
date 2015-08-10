@@ -1,4 +1,3 @@
-#define ANDROID 1
 #if defined(ANDROID) && !defined(USE_CURL)
 #include "http_client.h"
 #include <jni.h>
@@ -50,17 +49,24 @@ HttpClientStatus http_client_download (HttpClient *c, const char *url){
 	HttpClientStatus result = HTTP_CLIENT_FAIL;
 	JNIEnv *pEnv = NULL;
 	if ((*globalVm)->AttachCurrentThread(globalVm, &pEnv, NULL) != JNI_OK){
-		//goto exit;
+		goto exit;
 	}
+
 	if ((*globalVm)->GetEnv(globalVm, (void**)(&pEnv), JNI_VERSION_1_6) != JNI_OK) {
 		return JNI_ERR;
 	}
+	////
+	jclass Obj = (*pEnv)->AllocObject(pEnv, globalMyDownloaderID);
+		if (!Obj){
+
+			return JNI_ERR;
+	}
+
 	jstring jStr = (*pEnv)->NewStringUTF(pEnv, url);
 	long args = NULL;
 	(*pEnv)->CallVoidMethod(pEnv, globalMyDownloaderObj, globalDownloadID, jStr, args);
 	result = HTTP_CLIENT_OK;
 exit:
-	//(*globalVm)->DetachCurrentThread(globalVm);
 	return result;
 }
 
@@ -90,9 +96,8 @@ int http_client_on_load (JavaVM *vm_){
 		return JNI_ERR;
 	}
 
-	jclass _class = (*env)->FindClass(env,"com/example/testandroidapp/MyDownloader");
-	if (_class){
-		(*env)->RegisterNatives(env, _class, methodTable, sizeof(methodTable) / sizeof(methodTable[0]) );
+	if (globalMyDownloaderID){
+		(*env)->RegisterNatives(env, globalMyDownloaderID, methodTable, sizeof(methodTable) / sizeof(methodTable[0]) );
 	} else {
 		return JNI_ERR;
 	}

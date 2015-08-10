@@ -8,8 +8,6 @@
 #include "downloader.h"
 #include "http_client.h"
 
-#define ANDROID 1
-
 struct Downloader {
 	FILE *file;
 	int alive;
