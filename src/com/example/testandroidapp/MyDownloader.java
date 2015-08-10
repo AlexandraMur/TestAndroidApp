@@ -18,8 +18,6 @@ public class MyDownloader {
 	public MyDownloader(){}
 	
 	public void download(String sUrl, long args) {
-		Log.d(TAG,"Download function");
-		
 		try {
 			URL url = new URL(sUrl);
 			HttpURLConnection connection = (HttpURLConnection)url.openConnection();

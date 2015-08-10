@@ -11,7 +11,6 @@ static const char TAG[] = "HTTP CLIENT ANDROID";
 static JavaVM *globalVm;
 static jclass globalMyDownloaderID;
 static jmethodID globalDownloadID;
-static jobject globalMyDownloaderObj;
 
 static void writeCallback (JNIEnv *pEnv, jobject pThis, jint size, jlong args){
 	__android_log_write(ANDROID_LOG_INFO, TAG, "Downloaded");
@@ -60,7 +59,7 @@ HttpClientStatus http_client_download (HttpClient *c, const char *url){
 
 	jstring jStr = (*pEnv)->NewStringUTF(pEnv, url);
 	long args = NULL;
-	(*pEnv)->CallVoidMethod(pEnv, globalMyDownloaderObj, globalDownloadID, jStr, args);
+	(*pEnv)->CallVoidMethod(pEnv, obj, globalDownloadID, jStr, args);
 	result = HTTP_CLIENT_OK;
 exit:
 	if (obj){

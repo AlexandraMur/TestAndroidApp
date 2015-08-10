@@ -47,10 +47,7 @@ static void workFlow (){
 	Downloader *d = NULL;
 	Playlist *playlist = NULL;
 
-	struct syncronize sync;
-	sync.mutex_flag = 0;
-	sync.cv_flag = 0;
-	sync.num = 0;
+	struct syncronize sync = {0};
 
 	int mutex_error = pthread_mutex_init(&sync.mutex, NULL);
 	int cv_error = pthread_cond_init(&sync.cv, NULL);
