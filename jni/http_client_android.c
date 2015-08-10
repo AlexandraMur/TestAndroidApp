@@ -20,12 +20,13 @@ static void writeCallback (JNIEnv *pEnv, jobject pThis, jint size, jlong args){
 }
 
 static void progressCallback (JNIEnv *pEnv, jobject pThis, jbyteArray byteArray, jint sizeTotal, jint sizeCurr, jlong args){
+
 	struct HttpClient *http_client = (struct HttpClient*)args;
 	if (!http_client){
 		return;
 	}
 	http_client->cb->data(http_client, http_client->name, byteArray, sizeCurr);
-
+	__android_log_write(ANDROID_LOG_INFO, TAG, "after callback");
 	if (sizeTotal == 0){
 		//print only current size;
 		__android_log_write(ANDROID_LOG_INFO, TAG, "Current size");

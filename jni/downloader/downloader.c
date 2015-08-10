@@ -37,13 +37,20 @@ void my_data(HttpClient *c, void *arg, const void *buffer, size_t size){
 	__android_log_write(ANDROID_LOG_INFO, "downloader.c", "1");
 	char *name = (char*)arg;
 	FILE *file = fopen("/sdcard/file.txt", "wb");
+	__android_log_write(ANDROID_LOG_INFO, "downloader.c", "2");
 	if (!file){
 		__android_log_write(ANDROID_LOG_INFO, "downloader.c", "fail");
 		remove(name);
-		return;
+		goto exit;
+	}
+	__android_log_write(ANDROID_LOG_INFO, "downloader.c", "3");
+	if (!sizeof(buffer[0])){
+		goto exit;
 	}
 	fwrite(buffer, sizeof(buffer[0]), sizeof(buffer)/sizeof(buffer[0]), file);
 	__android_log_write(ANDROID_LOG_INFO, "downloader.c", " writing in a file");
+exit:
+	fclose("/sdcard/file.txt");
 }
 
 void my_progress(HttpClient *c, void *arg, int64_t total_size, int64_t curr_size){
