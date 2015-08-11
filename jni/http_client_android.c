@@ -16,22 +16,26 @@ static JavaVM *globalVm;
 static jclass globalMyDownloaderID;
 static jmethodID globalDownloadID;
 
-static void writeCallback (JNIEnv *pEnv, jobject pThis, jint size, jlong args){
-	__android_log_write(ANDROID_LOG_INFO, TAG, "Downloaded");
-	return;
-}
-
-static void progressCallback (JNIEnv *pEnv, jobject pThis, jbyteArray byteArray, jint sizeTotal, jint sizeCurr, jlong args){
-	struct HttpClient *http_client = (struct HttpClient*)args;
+static void writeCallback (JNIEnv *pEnv, jobject pThis, jbyteArray byteArray, jint size, jlong args){
+	HttpClient *http_client = (HttpClient*)args;
 	if (!http_client){
 		return;
 	}
-	http_client->cb->data(http_client, (void*)http_client->name, byteArray, sizeCurr, http_client->file);
+	http_client->cb->data(http_client, (void*)http_client->name, byteArray, size, http_client->file);
+	return;
+}
+
+static void progressCallback (JNIEnv *pEnv, jobject pThis, jint sizeTotal, jint sizeCurr, jlong args){
+	if (sizeTotal){
+		__android_log_write(ANDROID_LOG_INFO, TAG, "percents");
+	} else{
+		__android_log_write(ANDROID_LOG_INFO, TAG, "Current size");
+	}
 }
 
 static JNINativeMethod methodTable[] = {
-	{"writeCallback", "(IJ)V", (void *)writeCallback},
-	{"progressCallback", "([BIIJ)V", (void*)progressCallback}
+	{"writeCallback", "([BIJ)V", (void *)writeCallback},
+	{"progressCallback", "(IIJ)V", (void*)progressCallback}
 };
 
 HttpClient* http_client_create (IHttpClientCb *cb, void* args){
@@ -69,15 +73,17 @@ HttpClientStatus http_client_download (HttpClient *c, const char *url, const cha
 	}
 
 	long args = (long)c;
-	int res = (*pEnv)->CallIntMethod(pEnv, obj, globalDownloadID, jStr, args);
-
-	result = HTTP_CLIENT_OK;
+	if ((*pEnv)->CallIntMethod(pEnv, obj, globalDownloadID, jStr, args) == HTTP_CLIENT_OK){
+		__android_log_write(ANDROID_LOG_INFO, TAG, "OK");
+		result = HTTP_CLIENT_OK;
+	}
 exit:
 	if (c->file){
 		fclose(c->file);
 	}
 	if (obj){
 		(*pEnv)->DeleteLocalRef(pEnv, obj);
+		__android_log_write(ANDROID_LOG_INFO, TAG, "2 OK");
 	}
 	return result;
 }

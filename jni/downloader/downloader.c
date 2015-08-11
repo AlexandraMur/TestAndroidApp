@@ -36,13 +36,16 @@ struct entry {
 void my_data(HttpClient *c, void *arg, const void *buffer, size_t size, FILE *file){
 	char *name = (char*)arg;
 	if (!file){
-		__android_log_write(ANDROID_LOG_INFO, "downloader.c", "fail");
 		return;
 	}
 	if (!sizeof(buffer[0]) || !sizeof(buffer)){
 		return;
 	}
+	if (!buffer){
+		return;
+	}
 	fwrite(buffer, sizeof(buffer[0]), sizeof(buffer)/sizeof(buffer[0]), file);
+	__android_log_write(ANDROID_LOG_INFO, "downloader.c", "downloading...");
 }
 
 void my_progress(HttpClient *c, void *arg, int64_t total_size, int64_t curr_size){
@@ -109,14 +112,13 @@ static void *work_flow(void* _d){
 		TAILQ_REMOVE(&d->head, d->_entry, entries);
 		d->queue_size--;
 		pthread_mutex_unlock(&d->mutex);
-
 		http_client_download(d->http_client, d->_entry->url, d->_entry->name_of_file);
 		#if ANDROID
 		http_client_android_detach();
 		#endif
 		destroy_entry(d->_entry);
+		__android_log_write(ANDROID_LOG_INFO, "downloader.c", "DOWNLOADED");
     }
-    return NULL;
 }
 
 Downloader *downloader_create(IDownloader_Cb *my_callbacks, void *args){

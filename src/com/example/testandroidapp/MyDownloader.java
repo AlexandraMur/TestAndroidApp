@@ -14,8 +14,8 @@ public class MyDownloader {
 	private static final String TAG = "MyDownloader";
 	private static final int BUFFER_SIZE = 4096;
 
-	private native void writeCallback(int size, long args);
-	private native void progressCallback(byte buffer[], int sizeTotal, int sizeCurr, long args);
+	private native void writeCallback(byte buffer[], int size, long args);
+	private native void progressCallback(int sizeTotal, int sizeCurr, long args);
 	
 	public MyDownloader(){}
 	
@@ -51,9 +51,9 @@ public class MyDownloader {
 	        byte[] buffer = new byte[BUFFER_SIZE];
 	        while ((bytesRead = inputStream.read(buffer)) != -1) {
 	        	currentBytes += bytesRead;
-	            progressCallback(buffer, contentLength, currentBytes, args);
+	            progressCallback(contentLength, currentBytes, args);
+	            writeCallback(buffer, bytesRead, args);
 	        }
-	        writeCallback(currentBytes, args);
 	        
 	        inputStream.close();
 			connection.disconnect();
