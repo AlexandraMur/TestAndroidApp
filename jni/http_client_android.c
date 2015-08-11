@@ -1,9 +1,11 @@
 #if defined(ANDROID) && !defined(USE_CURL)
+#include <stdio.h>
 #include "http_client.h"
 #include <jni.h>
 #include <android/log.h>
 
 struct HttpClient {
+	FILE *file;
 	const char *name;
 	const char *url;
 	IHttpClientCb *cb;
@@ -20,23 +22,11 @@ static void writeCallback (JNIEnv *pEnv, jobject pThis, jint size, jlong args){
 }
 
 static void progressCallback (JNIEnv *pEnv, jobject pThis, jbyteArray byteArray, jint sizeTotal, jint sizeCurr, jlong args){
-
 	struct HttpClient *http_client = (struct HttpClient*)args;
 	if (!http_client){
 		return;
 	}
-	__android_log_write(ANDROID_LOG_INFO, TAG, "before callback");
-	http_client->cb->data(http_client, http_client->name, byteArray, sizeCurr);
-	__android_log_write(ANDROID_LOG_INFO, TAG, "after callback");
-	if (sizeTotal == 0){
-		//print only current size;
-		__android_log_write(ANDROID_LOG_INFO, TAG, "Current size");
-	} else {
-		//print percents
-		int currPercent = (sizeCurr * 100) / sizeTotal;
-		__android_log_write(ANDROID_LOG_INFO, TAG, "Progress Callback");
-	}
-	return;
+	http_client->cb->data(http_client, (void*)http_client->name, byteArray, sizeCurr, http_client->file);
 }
 
 static JNINativeMethod methodTable[] = {
@@ -73,10 +63,19 @@ HttpClientStatus http_client_download (HttpClient *c, const char *url, const cha
 	}
 
 	jstring jStr = (*pEnv)->NewStringUTF(pEnv, url);
+	c->file = fopen(name_of_file, "wb");
+	if (!c->file){
+		goto exit;
+	}
+
 	long args = (long)c;
 	int res = (*pEnv)->CallIntMethod(pEnv, obj, globalDownloadID, jStr, args);
+
 	result = HTTP_CLIENT_OK;
 exit:
+	if (c->file){
+		fclose(c->file);
+	}
 	if (obj){
 		(*pEnv)->DeleteLocalRef(pEnv, obj);
 	}

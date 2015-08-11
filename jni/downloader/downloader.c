@@ -33,13 +33,10 @@ struct entry {
     TAILQ_ENTRY(entry) entries;
 };
 
-void my_data(HttpClient *c, void *arg, const void *buffer, size_t size){
+void my_data(HttpClient *c, void *arg, const void *buffer, size_t size, FILE *file){
 	char *name = (char*)arg;
-	FILE *file = fopen("/sdcard/file.txt", "wb");
-
 	if (!file){
 		__android_log_write(ANDROID_LOG_INFO, "downloader.c", "fail");
-		remove(name);
 		return;
 	}
 	if (!sizeof(buffer[0]) || !sizeof(buffer)){
@@ -112,6 +109,7 @@ static void *work_flow(void* _d){
 		TAILQ_REMOVE(&d->head, d->_entry, entries);
 		d->queue_size--;
 		pthread_mutex_unlock(&d->mutex);
+
 		http_client_download(d->http_client, d->_entry->url, d->_entry->name_of_file);
 		#if ANDROID
 		http_client_android_detach();
@@ -130,7 +128,6 @@ Downloader *downloader_create(IDownloader_Cb *my_callbacks, void *args){
 	if (!d){
 		goto fail;
 	}
-
 	IHttpClientCb *cb = calloc(1, sizeof(IHttpClientCb));
 	if (!cb){
 		goto fail;
@@ -145,6 +142,9 @@ Downloader *downloader_create(IDownloader_Cb *my_callbacks, void *args){
 	d->queue_size = 0;	 
 	TAILQ_INIT(&d->head);
 	d->http_client = http_client_create(cb, args);
+	if (!d->http_client){
+		goto fail;
+	}
 	d->mutex_flag = !pthread_mutex_init(&d->mutex, NULL);
     d->cv_flag = !pthread_cond_init(&d->conditional_variable, NULL);
 	d->thread_flag = !pthread_create(&d->thread, NULL, work_flow, (void*)d);

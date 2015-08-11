@@ -22,7 +22,7 @@ typedef enum {
 } HttpClientStatus;
 
 typedef struct {
-    void (*data)(HttpClient *c, void *arg, const void *buffer, size_t size);
+    void (*data)(HttpClient *c, void *arg, const void *buffer, size_t size, FILE *file);
     void (*progress)(HttpClient *c, void *arg, int64_t total_size, int64_t curr_size);
 } IHttpClientCb;
 

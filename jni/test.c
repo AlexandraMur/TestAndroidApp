@@ -65,7 +65,7 @@ static void workFlow (){
 	}
 
 	const char *url = "http://bakhirev.biz/book/index.html";
-	const char *name = "test2.txt";
+	const char *name = "/Card/file.txt";
 
 	pthread_mutex_lock(&sync.mutex);
 	sync.num++;
