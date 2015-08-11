@@ -25,6 +25,7 @@ static void progressCallback (JNIEnv *pEnv, jobject pThis, jbyteArray byteArray,
 	if (!http_client){
 		return;
 	}
+	__android_log_write(ANDROID_LOG_INFO, TAG, "before callback");
 	http_client->cb->data(http_client, http_client->name, byteArray, sizeCurr);
 	__android_log_write(ANDROID_LOG_INFO, TAG, "after callback");
 	if (sizeTotal == 0){
