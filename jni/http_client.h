@@ -16,18 +16,21 @@ typedef struct HttpClient HttpClient;
 
 typedef enum {
     HTTP_CLIENT_OK,
+	HTTP_CLIENT_INVALID_ARG,
+	HTTP_CLIENT_INSUFFICIENT_RESOURCE,
     HTTP_CLIENT_TIMEOUT_CONNECT,
     HTTP_CLIENT_TIMEOUT_RECIEVE,
-    HTTP_CLIENT_FAIL
+	HTTP_CLIENT_BAD_URL
+	// ...
 } HttpClientStatus;
 
 typedef struct {
-    void (*data)(HttpClient *c, void *arg, const void *buffer, size_t size, FILE *file);
+    void (*data)(HttpClient *c, void *arg, const void *buffer, size_t size);
     void (*progress)(HttpClient *c, void *arg, int64_t total_size, int64_t curr_size);
 } IHttpClientCb;
 
-HttpClient* http_client_create (IHttpClientCb *cb, void* args);
-HttpClientStatus http_client_download (HttpClient *c, const char *url, const char *name);
+HttpClient* http_client_create (const IHttpClientCb *cb, void* args);
+HttpClientStatus http_client_download (HttpClient *c, const char *url);
 void http_client_reset (HttpClient *c);
 void http_client_destroy (HttpClient *c);
 
