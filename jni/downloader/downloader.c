@@ -38,10 +38,10 @@ void my_data(HttpClient *c, void *arg, const void *buffer, size_t size, FILE *fi
 	if (!file){
 		return;
 	}
-	if (!sizeof(buffer[0]) || !sizeof(buffer)){
-		return;
-	}
 	if (!buffer){
+			return;
+	}
+	if (!sizeof(buffer[0]) || !sizeof(buffer)){
 		return;
 	}
 	fwrite(buffer, sizeof(buffer[0]), sizeof(buffer)/sizeof(buffer[0]), file);
