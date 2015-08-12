@@ -20,14 +20,13 @@
 #else
 # include <stdio.h>
 # define LOGI(fmt, ...) ((void)printf("(I): %s: " fmt, __func__ , ## __VA_ARGS__))
-# define LOGW(fmt, ...) ((void)printf("(W): %s: " fmt, __func__ , ## __VA_ARGS__))
 # define LOGE(fmt, ...) ((void)printf("(E): %s: " fmt, __func__ , ## __VA_ARGS__))
+# define LOGW(fmt, ...) ((void)printf("(W): %s: " fmt, __func__ , ## __VA_ARGS__))
 #endif
 
 typedef struct Job
 {
 	TAILQ_ENTRY(Job) next;
-	FILE *file;
     char *url;
     char *file_name;
 } Job;
@@ -52,6 +51,8 @@ struct Downloader
 
 	const IDownloader_Cb *cb;
 	void *arg;
+
+	FILE *file;
 };
 
 static void data_cb (HttpClient *c, void *arg, const void *buffer, size_t size);
@@ -67,9 +68,9 @@ static void data_cb (HttpClient *c, void *arg, const void *buffer, size_t size)
 {
 	Downloader *d = (Downloader*)arg;
 	assert(d);
-	assert(d->current_job->file);
+	assert(d->file);
 	if (buffer && size) {
-		fwrite(buffer, 1, size, d->current_job->file);
+		fwrite(buffer, 1, size, d->file);
 	}
 }
 
@@ -94,10 +95,6 @@ static void job_destroy(Job *job)
 	if (job->file_name) {
 		free(job->file_name);
 		job->file_name = NULL;
-	}
-	if (job->file) {
-		fclose(job->file);
-		job->file = NULL;
 	}
 	free(job);
 }
@@ -176,13 +173,17 @@ static void *worker_thread (void *arg)
 
 		HttpClientStatus status = HTTP_CLIENT_INSUFFICIENT_RESOURCE;
 
-		d->current_job->file = fopen(d->current_job->file_name, "wb");
-		if (!d->current_job->file) {
+		d->file = fopen(d->current_job->file_name, "wb");
+		if (!d->file) {
 			LOGE("Can't create file %s\n", d->current_job->file_name);
 		} else {
 			status = http_client_download(d->http_client, d->current_job->url);
+			if (httpclient_to_downloader_status(status) != DOWNLOADER_STATUS_OK){
+				remove(d->current_job->file_name);
+			}
 		}
 
+		fclose(d->file);
 		LOGI("Download complete, status == %d", status);
 
 		if (d->cb->complete) {

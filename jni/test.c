@@ -55,10 +55,8 @@ static void my_complete (Downloader *d, void *args, int status, size_t number_fi
 static void my_progress (Downloader *d, void *args, int64_t curr_size, int64_t total_size)
 {
 	if (total_size == 0){
-		//print only current size;
-		LOGI("Current size");
+		LOGI("%d", curr_size);
 	} else {
-		//print percents
 		int currPercent = (curr_size * 100) / total_size;
 		LOGI("%d %%", currPercent);
 	}
