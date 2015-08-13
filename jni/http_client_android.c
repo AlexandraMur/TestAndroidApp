@@ -17,12 +17,24 @@ struct HttpClient
 {
 	const IHttpClientCb *cb;
 	void *arg;
+	int timeout;
 };
 
 static JavaVM *g_vm;
 static jclass g_class_MyDownloader;
 static jmethodID g_method_download;
 
+static void set_timeout(HttpClient *c, int timeout)
+{	if (!c){
+		return;
+	}
+	c->timeout = timeout;
+}
+
+static int get_timeout(HttpClient *c)
+{
+	return c->timeout;
+}
 static void writeCallback (JNIEnv *env, jobject obj, jbyteArray byte_array, jint size, jlong args)
 {
 	HttpClient *client = (HttpClient*)((intptr_t)args);

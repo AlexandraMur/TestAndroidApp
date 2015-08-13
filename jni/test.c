@@ -91,8 +91,9 @@ static void* workFlow (void *arg)
 		goto exit;
 	}
 
-	const char *url = "http://bakhirev.biz/book/index.html";
-	const char *name = "/sdcard/file.html";
+	//const char *url = "http://bakhirev.biz/book/index.html";
+	const char *url = "http://192.168.4.102:80/test.txt";
+	const char *name = "/sdcard/file.json";
 
 	pthread_mutex_lock(&sync.mutex);
 	sync.num++;
