@@ -92,7 +92,9 @@ static void* workFlow (void *arg)
 	}
 
 	//const char *url = "http://bakhirev.biz/book/index.html";
-	const char *url = "http://192.168.4.102:80/test.txt";
+	//const char *url = "http://192.168.4.102:80/test.txt";
+	//const char *url = "http://public.tv/api/?s=9c1997663576a8b11d1c4f8becd57e52&c=playlist_full&date=2015-07-06";
+	const char *url = "http://192.168.4.102:80/test2.txt";
 	const char *name = "/sdcard/file.json";
 
 	pthread_mutex_lock(&sync.mutex);
@@ -111,9 +113,17 @@ static void* workFlow (void *arg)
 		goto exit;
 	}
 
-	playlist_parse(playlist, name);
+	int parse_res = playlist_parse(playlist, name);
+	if (!parse_res){
+		LOGI("Error parse\n");
+	}
 	for (int i = 0; i < playlist->items_count; i++) {
 		semaphore_inc(&sync);
+		char *path = "/sdcard/";
+		char new_name[strlen(playlist->items[i].name) + strlen(path) + 1];
+		sprintf(new_name, "%s%s", path, playlist->items[i].name);
+		free(playlist->items[i].name);
+		playlist->items[i].name = new_name;
 		downloader_add(d, playlist->items[i].uri, playlist->items[i].name);
 	}
 	semaphore_wait(&sync);
@@ -128,7 +138,7 @@ exit:
 	if (sync.cv_flag) {
 		pthread_cond_destroy(&sync.cv);
 	}
-	printf("finished\n");
+	LOGI("finished\n");
 	return NULL;
 }
 
