@@ -41,10 +41,9 @@ static void writeCallback (JNIEnv *env, jobject obj, jbyteArray byte_array, jint
 	assert(client);
 
 	jbyte* buffer_ptr = (*env)->GetByteArrayElements(env, byte_array, NULL);
-	jsize buffer_size = (*env)->GetArrayLength(env, byte_array);
 
 	if (client->cb->data) {
-		client->cb->data(client, (void*)client->arg, buffer_ptr, buffer_size);
+		client->cb->data(client, (void*)client->arg, buffer_ptr, size);
 	}
 
 	(*env)->ReleaseByteArrayElements(env, byte_array, buffer_ptr, 0);
