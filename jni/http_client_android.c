@@ -18,6 +18,7 @@ struct HttpClient
 	const IHttpClientCb *cb;
 	void *arg;
 	int timeout;
+	int shutdown;
 };
 
 static JavaVM *g_vm;
@@ -40,6 +41,10 @@ static void writeCallback (JNIEnv *env, jobject obj, jbyteArray byte_array, jint
 	HttpClient *client = (HttpClient*)((intptr_t)args);
 	assert(client);
 
+	if (client->shutdown){
+		return;
+	}
+
 	jbyte* buffer_ptr = (*env)->GetByteArrayElements(env, byte_array, NULL);
 
 	if (client->cb->data) {
@@ -53,6 +58,9 @@ static void progressCallback (JNIEnv *env, jobject obj, jint total_size, jint cu
 {
 	HttpClient *client = (HttpClient*)((intptr_t)args);
 	assert(client);
+	if (client->shutdown){
+			return;
+	}
 	if (client->cb->progress) {
 		client->cb->progress(client, client->arg, total_size, curr_size);
 	}
@@ -85,6 +93,7 @@ HttpClientStatus http_client_download (HttpClient *c, const char *url)
 		LOGE("Invalid args\n");
 		return HTTP_CLIENT_INVALID_ARG;
 	}
+
 	HttpClientStatus result = HTTP_CLIENT_INSUFFICIENT_RESOURCE;
 	JNIEnv *pEnv;
 	if ((*g_vm)->AttachCurrentThread(g_vm, &pEnv, NULL) != JNI_OK) {
@@ -114,6 +123,10 @@ done:
 
 void http_client_reset (HttpClient *c)
 {
+	if(!c){
+		return;
+	}
+	c->shutdown = 1;
 	// TODO: break current download if exist
 	// This method must be thread safe
 }

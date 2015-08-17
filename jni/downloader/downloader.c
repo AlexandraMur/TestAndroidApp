@@ -69,6 +69,10 @@ static void data_cb (HttpClient *c, void *arg, const void *buffer, size_t size)
 	Downloader *d = (Downloader*)arg;
 	assert(d);
 	assert(d->file);
+
+	if (d->shutdown){
+			return;
+	}
 	if (buffer && size) {
 		fwrite(buffer, 1, size, d->file);
 	}
@@ -78,6 +82,10 @@ static void progress_cb (HttpClient *c, void *arg, int64_t total_size, int64_t c
 {
 	Downloader *d = (Downloader*)arg;
 	assert(d);
+
+	if (!d->shutdown){
+		return;
+	}
 	if (d->cb->progress) {
 		d->cb->progress(d, d->arg, curr_size, total_size);
 	}
@@ -165,6 +173,7 @@ static void *worker_thread (void *arg)
 			pthread_cond_wait(&d->cv, &d->mutex);
         }
         if (d->shutdown) {
+        	http_client_reset(d->http_client);
         	pthread_mutex_unlock(&d->mutex);
             break;
         }
@@ -268,6 +277,7 @@ int downloader_add(Downloader *d, const char *url, const char *file_name)
 	if (!d) {
 		return DOWNLOADER_STATUS_ERROR;
 	}
+
 	Job *job = job_create(url, file_name);
 	if (!job) {
 		return DOWNLOADER_STATUS_ERROR;
