@@ -36,13 +36,13 @@ static int get_timeout(HttpClient *c)
 {
 	return c->timeout;
 }
-static void writeCallback (JNIEnv *env, jobject obj, jbyteArray byte_array, jint size, jlong args)
+static int writeCallback (JNIEnv *env, jobject obj, jbyteArray byte_array, jint size, jlong args)
 {
 	HttpClient *client = (HttpClient*)((intptr_t)args);
 	assert(client);
 
 	if (client->shutdown){
-		return;
+		return 1;
 	}
 
 	jbyte* buffer_ptr = (*env)->GetByteArrayElements(env, byte_array, NULL);
@@ -68,7 +68,7 @@ static void progressCallback (JNIEnv *env, jobject obj, jint total_size, jint cu
 
 static JNINativeMethod methodTable[] =
 {
-	{ "writeCallback",    "([BIJ)V", (void*)writeCallback },
+	{ "writeCallback",    "([BIJ)I", (void*)writeCallback },
 	{ "progressCallback", "(IIJ)V",  (void*)progressCallback }
 };
 
