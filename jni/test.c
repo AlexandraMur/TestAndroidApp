@@ -120,8 +120,13 @@ static void* workFlow (void *arg)
 	for (int i = 0; i < playlist->items_count; i++) {
 		semaphore_inc(&sync);
 		char *path = "/sdcard/";
-		char new_name[strlen(playlist->items[i].name) + strlen(path) + 1];
-		sprintf(new_name, "%s%s", path, playlist->items[i].name);
+		size_t length = strlen(playlist->items[i].name) + strlen(path);
+		char *new_name = malloc(length + 1);
+		if (!new_name){
+			LOGI("Error\n");
+			goto exit;
+		}
+		snprintf(new_name, length + 1, "%s%s", path, playlist->items[i].name);
 		free(playlist->items[i].name);
 		playlist->items[i].name = new_name;
 		downloader_add(d, playlist->items[i].uri, playlist->items[i].name);
