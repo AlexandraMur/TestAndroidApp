@@ -24,8 +24,16 @@ public class MainActivity extends Activity{
 		button1.setOnClickListener(new View.OnClickListener() {
 			@Override
 			public void onClick(View v) {
-				Log.d(TAG, "Button pushed");
+				Log.d(TAG, "Button DOWNLOAD pushed");
 				nativeTest();
+			}
+		});
+		
+		View button2 = findViewById(com.example.testandroidapp.R.id.button2);
+		button2.setOnClickListener(new View.OnClickListener() {
+			@Override
+			public void onClick(View v) {
+				Log.d(TAG, "Button RESET pushed");
 			}
 		});
 	}
