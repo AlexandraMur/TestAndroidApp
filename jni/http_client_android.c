@@ -112,7 +112,6 @@ HttpClientStatus http_client_download (HttpClient *c, const char *url)
 		LOGE("NewStringUTF failed\n");
 		goto done;
 	}
-	LOGI("!!");
 	LOGI("Start download %s\n", url);
 	result = (*pEnv)->CallIntMethod(pEnv, obj, g_method_download, jurl, (jlong)c);
 	(*pEnv)->DeleteLocalRef(pEnv, jurl);

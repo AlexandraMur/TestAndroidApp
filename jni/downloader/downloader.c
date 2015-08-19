@@ -71,7 +71,8 @@ static void data_cb (HttpClient *c, void *arg, const void *buffer, size_t size)
 	assert(d->file);
 
 	if (d->shutdown){
-			return;
+		LOGI("SD");
+		return;
 	}
 	if (buffer && size) {
 		fwrite(buffer, 1, size, d->file);
@@ -83,7 +84,7 @@ static void progress_cb (HttpClient *c, void *arg, int64_t total_size, int64_t c
 	Downloader *d = (Downloader*)arg;
 	assert(d);
 
-	if (!d->shutdown){
+	if (d->shutdown){
 		return;
 	}
 	if (d->cb->progress) {
@@ -296,9 +297,21 @@ int downloader_OnLoad(JavaVM *vm)
 }
 #endif //defined(ANDROID) && !defined(USE_CURL)
 
-void downloader_stop(long arg){
-	Downloader *d = arg;
-	pthread_mutex_lock(&d->mutex);
+void downloader_stop(void* d_){
+	LOGI("STOP");
+	Downloader *d = (Downloader*) d_;
+	assert(d);
+	if (!d){
+		LOGI("D == 0");
+		return;
+	}
+
+	int i = pthread_mutex_lock(&d->mutex);
+	if (i){
+		LOGI("Error lock");
+	}
+	LOGI("SD == 1");
 	d->shutdown = 1;
+	http_client_reset(d->http_client);
 	pthread_mutex_unlock(&d->mutex);
 }

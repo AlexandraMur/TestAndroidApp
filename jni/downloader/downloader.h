@@ -27,7 +27,7 @@ typedef struct {
 Downloader* downloader_create(const IDownloader_Cb *, void* args);
 void downloader_destroy(Downloader*);
 DownloaderStatus downloader_add(Downloader *d, const char* url, const char* name_of_file);
-void downloader_stop(long arg);
+void downloader_stop(void*);
 
 #ifdef ANDROID
 int downloader_OnLoad(JavaVM *vm); // Deprecated

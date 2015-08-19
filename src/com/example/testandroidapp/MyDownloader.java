@@ -53,8 +53,10 @@ public class MyDownloader {
 	        while ((bytesRead = inputStream.read(buffer)) != -1) {
 	        	currentBytes += bytesRead;
 	            progressCallback(contentLength, currentBytes, args);
-	            if (writeCallback(buffer, bytesRead, args) != DOWNLOADER_STATUS_OK){
+	            int shutdown = writeCallback(buffer, bytesRead, args);
+	            if (shutdown != DOWNLOADER_STATUS_OK){
 	            	status = DOWNLOADER_STATUS_ERROR;
+	            	Log.i(TAG,"BREAK");
 	            	break;
 	            }
 	        }

@@ -2,6 +2,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <assert.h>
 #include <pthread.h>
 #include <downloader/downloader.h>
 #include <parser/parser.h>
@@ -157,15 +158,16 @@ static void stopDownloading (jlong args)
 	if (args == 0){
 		return;
 	}
-	Downloader *d = (Downloader*)args;
+	Downloader *d = (Downloader*)((intptr_t)args);
 	assert(d);
-	d->shutdown = 1;
+
+	pthread_create(&g_thread, NULL, (void*)downloader_stop, (void*)d);
 }
 
 static JNINativeMethod methodTable[] =
 {
 	{"startDownloading", "(J)V", (void *)startDownloading},
-	{"stopDownloading", "(J)V", (void *)stopDownloading}
+	{"stopDownloading",  "(J)V", (void *)stopDownloading}
 };
 
 jint JNI_OnLoad (JavaVM *vm, void *reserved)

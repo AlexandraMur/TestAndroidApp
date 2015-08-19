@@ -16,6 +16,7 @@ public class MainActivity extends Activity{
 	}
 	
 	private native void startDownloading(long args);
+	private native void stopDownloading(long args);
 	
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -36,6 +37,7 @@ public class MainActivity extends Activity{
 			@Override
 			public void onClick(View v) {
 				Log.d(TAG, "Button STOP pushed");
+				stopDownloading(args);
 			}
 		});
 	}
