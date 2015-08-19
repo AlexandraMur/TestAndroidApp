@@ -306,10 +306,9 @@ void downloader_stop(void* d_){
 	Downloader *d = (Downloader*) d_;
 	assert(d);
 	if (!d){
-		LOGI("D == 0");
 		return;
 	}
-	d->shutdown = 1;
-	pthread_cond_broadcast(&d->cv);
+	//d->shutdown = 1;
+	//pthread_cond_broadcast(&d->cv);
 	http_client_reset(d->http_client);
 }
