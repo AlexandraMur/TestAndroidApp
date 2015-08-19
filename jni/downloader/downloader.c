@@ -181,7 +181,6 @@ static void *worker_thread (void *arg)
 		pthread_mutex_unlock(&d->mutex);
 
 		HttpClientStatus status = HTTP_CLIENT_INSUFFICIENT_RESOURCE;
-
 		d->file = fopen(d->current_job->file_name, "wb");
 		if (!d->file) {
 			LOGE("Can't create file %s\n", d->current_job->file_name);
@@ -219,7 +218,7 @@ Downloader *downloader_create(const IDownloader_Cb *cb, void *arg)
 	TAILQ_INIT(&d->jobs);
 	d->jobs_count = 0;
 	d->current_job = NULL;
-	d->shutdown = false;
+	d->shutdown = 0;
 	d->cb = cb;
 	d->arg = arg;
 
@@ -296,3 +295,10 @@ int downloader_OnLoad(JavaVM *vm)
 	return http_client_on_load(vm);
 }
 #endif //defined(ANDROID) && !defined(USE_CURL)
+
+void downloader_stop(long arg){
+	Downloader *d = arg;
+	pthread_mutex_lock(&d->mutex);
+	d->shutdown = 1;
+	pthread_mutex_unlock(&d->mutex);
+}

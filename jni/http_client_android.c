@@ -52,6 +52,7 @@ static int writeCallback (JNIEnv *env, jobject obj, jbyteArray byte_array, jint 
 	}
 
 	(*env)->ReleaseByteArrayElements(env, byte_array, buffer_ptr, 0);
+	return 0;
 }
 
 static void progressCallback (JNIEnv *env, jobject obj, jint total_size, jint curr_size, jlong args)
@@ -83,6 +84,7 @@ HttpClient* http_client_create (const IHttpClientCb *cb, void* arg)
 	}
 	c->cb = cb;
 	c->arg = arg;
+	c->shutdown = 0;
 	return c;
 }
 
@@ -110,6 +112,7 @@ HttpClientStatus http_client_download (HttpClient *c, const char *url)
 		LOGE("NewStringUTF failed\n");
 		goto done;
 	}
+	LOGI("!!");
 	LOGI("Start download %s\n", url);
 	result = (*pEnv)->CallIntMethod(pEnv, obj, g_method_download, jurl, (jlong)c);
 	(*pEnv)->DeleteLocalRef(pEnv, jurl);

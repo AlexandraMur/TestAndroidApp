@@ -63,8 +63,9 @@ static void my_progress (Downloader *d, void *args, int64_t curr_size, int64_t t
 	return;
 }
 
-static void* workFlow (void *arg)
+static void* workFlow (void* arg_)
 {
+	long arg = (long) arg_;
 	IDownloader_Cb my_callbacks =
 	{
 		.complete = &my_complete,
@@ -115,7 +116,7 @@ static void* workFlow (void *arg)
 
 	int parse_res = playlist_parse(playlist, name);
 	if (!parse_res){
-		LOGI("Error parse\n");
+		LOGE("Error parse\n");
 	}
 	for (int i = 0; i < playlist->items_count; i++) {
 		semaphore_inc(&sync);
@@ -123,7 +124,6 @@ static void* workFlow (void *arg)
 		size_t length = strlen(playlist->items[i].name) + strlen(path);
 		char *new_name = malloc(length + 1);
 		if (!new_name){
-			LOGI("Error\n");
 			goto exit;
 		}
 		snprintf(new_name, length + 1, "%s%s", path, playlist->items[i].name);
@@ -147,14 +147,25 @@ exit:
 	return NULL;
 }
 
-static void nativeTest ()
+static void startDownloading (jlong args)
 {
-	pthread_create(&g_thread, NULL, (void*)workFlow, NULL);
+	pthread_create(&g_thread, NULL, (void*)workFlow, (void*)args);
+}
+
+static void stopDownloading (jlong args)
+{
+	if (args == 0){
+		return;
+	}
+	Downloader *d = (Downloader*)args;
+	assert(d);
+	d->shutdown = 1;
 }
 
 static JNINativeMethod methodTable[] =
 {
-	{"nativeTest", "()V", (void *)nativeTest}
+	{"startDownloading", "(J)V", (void *)startDownloading},
+	{"stopDownloading", "(J)V", (void *)stopDownloading}
 };
 
 jint JNI_OnLoad (JavaVM *vm, void *reserved)
