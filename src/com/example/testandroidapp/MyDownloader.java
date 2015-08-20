@@ -54,6 +54,8 @@ public class MyDownloader {
 	        	currentBytes += bytesRead;
 	            progressCallback(contentLength, currentBytes, args);
 	            int shutdown = writeCallback(buffer, bytesRead, args);
+	            Log.i(TAG, Integer.toString(shutdown));
+	            
 	            if (shutdown != DOWNLOADER_STATUS_OK){
 	            	status = DOWNLOADER_STATUS_ERROR;
 	            	Log.i(TAG,"BREAK");

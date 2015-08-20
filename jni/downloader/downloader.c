@@ -180,6 +180,7 @@ static void *worker_thread (void *arg)
         }
         if (d->shutdown) {
         	http_client_reset(d->http_client);
+        	http_client_android_detach();
         	pthread_mutex_unlock(&d->mutex);
             break;
         }
@@ -308,7 +309,6 @@ void downloader_stop(void* d_){
 	if (!d){
 		return;
 	}
-	//d->shutdown = 1;
-	//pthread_cond_broadcast(&d->cv);
-	http_client_reset(d->http_client);
+	d->shutdown = 1;
+	pthread_cond_broadcast(&d->cv);
 }

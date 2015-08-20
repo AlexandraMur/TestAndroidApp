@@ -42,6 +42,7 @@ static int writeCallback (JNIEnv *env, jobject obj, jbyteArray byte_array, jint 
 	assert(client);
 
 	if (client->shutdown){
+		LOGI("SHUTDOWN");
 		return 1;
 	}
 
@@ -125,7 +126,7 @@ done:
 
 void http_client_reset (HttpClient *c)
 {
-	if(!c){
+	if(!c || !g_vm){
 		return;
 	}
 
