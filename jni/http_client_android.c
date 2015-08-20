@@ -130,11 +130,11 @@ void http_client_reset (HttpClient *c)
 		return;
 	}
 
-	JNIEnv *pEnv;
-	if ((*g_vm)->AttachCurrentThread(g_vm, &pEnv, NULL) != JNI_OK) {
-		LOGE("AttachCurrentThread failed\n");
-		return;
-	}
+	//JNIEnv *pEnv;
+	//if ((*g_vm)->AttachCurrentThread(g_vm, &pEnv, NULL) != JNI_OK) {
+		//LOGE("AttachCurrentThread failed\n");
+		//return;
+	//}
 	c->shutdown = 1;
 	// TODO: break current download if exist
 	// This method must be thread safe
@@ -176,6 +176,14 @@ int http_client_on_load (JavaVM *vm_)
 void http_client_android_detach(void)
 {
 	(*g_vm)->DetachCurrentThread(g_vm);
+}
+
+void http_client_android_attach(void){
+	JNIEnv *pEnv;
+	if ((*g_vm)->AttachCurrentThread(g_vm, &pEnv, NULL) != JNI_OK) {
+		LOGE("AttachCurrentThread failed\n");
+		return;
+	}
 }
 
 #endif //defined(ANDROID) && !defined(USE_CURL)
