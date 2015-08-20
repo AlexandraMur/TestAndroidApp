@@ -129,12 +129,6 @@ void http_client_reset (HttpClient *c)
 	if(!c || !g_vm){
 		return;
 	}
-
-	//JNIEnv *pEnv;
-	//if ((*g_vm)->AttachCurrentThread(g_vm, &pEnv, NULL) != JNI_OK) {
-		//LOGE("AttachCurrentThread failed\n");
-		//return;
-	//}
 	c->shutdown = 1;
 	// TODO: break current download if exist
 	// This method must be thread safe

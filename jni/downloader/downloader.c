@@ -304,6 +304,13 @@ int downloader_OnLoad(JavaVM *vm)
 }
 #endif //defined(ANDROID) && !defined(USE_CURL)
 
+static void stop(Downloader *d){
+	http_client_android_attach();
+	d->shutdown = 1;
+	pthread_cond_broadcast(&d->cv);
+	http_client_android_detach();
+}
+
 #if defined(ANDROID) && !defined(USE_CURL)
 void downloader_stop(void* d_){
 	Downloader *d = (Downloader*) d_;
@@ -314,9 +321,11 @@ void downloader_stop(void* d_){
 	if (!d->http_client){
 		return;
 	}
-	d->shutdown = 1;
-	pthread_cond_broadcast(&d->cv);
-	pthread_mutex_unlock(&d->mutex);
-	//http_client_android_detach();
+	pthread_t thread;
+	pthread_create(thread, NULL, stop, d);
+
+	//d->shutdown = 1;
+	//pthread_cond_broadcast(&d->cv);
+	//pthread_mutex_unlock(&d->mutex);
 }
 #endif //defined(ANDROID) && !defined(USE_CURL)
