@@ -99,10 +99,15 @@ HttpClientStatus http_client_download (HttpClient *c, const char *url)
 
 	HttpClientStatus result = HTTP_CLIENT_INSUFFICIENT_RESOURCE;
 	JNIEnv *pEnv;
-	if ((*g_vm)->AttachCurrentThreadAsDaemon(g_vm, &pEnv, NULL) != JNI_OK) {
+	/*if ((*g_vm)->AttachCurrentThreadAsDaemon(g_vm, &pEnv, NULL) != JNI_OK) {
 		LOGE("AttachCurrentThread failed\n");
 		return result;
+	}*/
+
+	if ((*g_vm)->GetEnv(g_vm, (void**)(&pEnv), JNI_VERSION_1_6) != JNI_OK) {
+			return JNI_ERR;
 	}
+
 	jclass obj = (*pEnv)->AllocObject(pEnv, g_class_MyDownloader);
 	if (!obj) {
 		LOGE("AllocObject failed\n");
@@ -176,15 +181,12 @@ void http_client_android_detach(void)
 }
 
 void http_client_android_attach(JavaVM *vm){
-	LOGI("ATTACH FUNC 1");
 	g_vm = vm;
 	JNIEnv *pEnv;
-	LOGI("ATTACH FUNC 2");
-	if ((*g_vm)->AttachCurrentThread(g_vm, &pEnv, NULL) != JNI_OK) {
+	if ((*g_vm)->AttachCurrentThreadAsDaemon(g_vm, &pEnv, NULL) != JNI_OK) {
 		LOGE("AttachCurrentThread failed\n");
 		return;
 	}
-	LOGI("ATTACH FUNC 3");
 }
 
 #endif //defined(ANDROID) && !defined(USE_CURL)
