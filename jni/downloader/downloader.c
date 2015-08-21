@@ -187,8 +187,11 @@ static void *worker_thread (void *arg)
 			pthread_cond_wait(&d->cv, &d->mutex);
         }
         if (d->shutdown) {
+        	//
+        	//http_client_android_attach(d->vm);
+        	//
         	http_client_reset(d->http_client);
-        	http_client_android_detach();
+        	//http_client_android_detach();
         	pthread_mutex_unlock(&d->mutex);
             break;
         }
@@ -204,7 +207,7 @@ static void *worker_thread (void *arg)
 			if (httpclient_to_downloader_status(status) != DOWNLOADER_STATUS_OK){
 				remove(d->current_job->file_name);
 			}
-			http_client_android_detach();
+			//http_client_android_detach();
 		}
 
 		fclose(d->file);
@@ -316,10 +319,11 @@ int downloader_OnLoad(JavaVM *vm)
 
 static void stop(Downloader *d){
 	http_client_android_attach(d->vm);
-	//d->shutdown = 1;
-	http_client_reset(d->http_client);
+	d->shutdown = 1;
+	//http_client_reset(d->http_client);
 	pthread_cond_broadcast(&d->cv);
 	http_client_android_detach();
+	LOGI("exit stop");
 }
 
 #if defined(ANDROID) && !defined(USE_CURL)
@@ -332,9 +336,11 @@ void downloader_stop(void* d_){
 	if (!d->http_client){
 		return;
 	}
-	pthread_t thread;
-	pthread_create(thread, NULL, stop, d);
-
+	//pthread_t thread;
+	//pthread_create(thread, NULL, stop, d);
+	LOGI("before stop");
+	stop(d);
+	LOGI("after stop");
 	//d->shutdown = 1;
 	//pthread_cond_broadcast(&d->cv);
 	//pthread_mutex_unlock(&d->mutex);
