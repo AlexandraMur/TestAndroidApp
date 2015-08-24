@@ -164,8 +164,7 @@ static void stopDownloading (jlong args)
 	}
 	Downloader *d = (Downloader*)((intptr_t)args);
 	assert(d);
-
-	pthread_create(&g_thread, NULL, (void*)downloader_stop, (void*)d);
+	downloader_stop(d);
 }
 
 static JNINativeMethod methodTable[] =

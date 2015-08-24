@@ -316,27 +316,24 @@ int downloader_OnLoad(JavaVM *vm)
 }
 #endif //defined(ANDROID) && !defined(USE_CURL)
 
-static void stop(Downloader *d){
-	LOGI("exit stop");
-}
-
-void downloader_set_timeout(Downloader *d, int timeout){
+void downloader_set_timeout(Downloader *d, int timeout)
+{
 	d->timeout = timeout;
 };
 
-int downloader_get_timeout(Downloader *d){
+int downloader_get_timeout(Downloader *d)
+{
 	return d->timeout;
 };
 
 #if defined(ANDROID) && !defined(USE_CURL)
-void downloader_stop(void* d_){
+void downloader_stop(void* d_)
+{
 	Downloader *d = (Downloader*) d_;
 	assert(d);
 	if (!d){
 		return;
 	}
-	http_client_android_attach(d->vm);
-	d->shutdown = 1;
-	pthread_cond_broadcast(&d->cv);
+	http_client_reset(d->http_client);
 }
 #endif //defined(ANDROID) && !defined(USE_CURL)

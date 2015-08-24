@@ -39,7 +39,6 @@ int http_client_get_timeout(HttpClient *);
 #ifdef ANDROID
 	int http_client_on_load(JavaVM *vm_);
 	void http_client_android_detach(void);
-	void http_client_android_attach(JavaVM *vm);
 #endif
 
 #ifdef __cplusplus
