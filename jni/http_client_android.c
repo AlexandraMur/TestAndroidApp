@@ -131,18 +131,20 @@ done:
 
 void http_client_reset (HttpClient *c)
 {
-	//LOGI("RESET");
-	if(!c || !g_vm){
-		LOGI("RESET");
-		return;
+	LOGI("RESET");
+	if(!c){
+		LOGI("C");
+	}
+	if (!g_vm){
+		LOGI("VM");
 	}
 
-	/*JNIEnv *pEnv;
-	if ((*g_vm)->AttachCurrentThread(g_vm, &pEnv, NULL) != JNI_OK) {
-		LOGE("AttachCurrentThread failed\n");
-		return;
-	}
-	 */
+	//JNIEnv *pEnv;
+	//if ((*g_vm)->AttachCurrentThread(g_vm, &pEnv, NULL) != JNI_OK) {
+		//LOGE("AttachCurrentThread failed\n");
+		//return;
+	//}
+
 	c->shutdown = 1;
 }
 

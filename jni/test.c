@@ -152,9 +152,10 @@ exit:
 	return NULL;
 }
 
-static void startDownloading (jlong args)
+static jlong startDownloading (jlong args)
 {
 	pthread_create(&g_thread, NULL, (void*)workFlow, (void*)args);
+	return args;
 }
 
 static void stopDownloading (jlong args)
@@ -169,7 +170,7 @@ static void stopDownloading (jlong args)
 
 static JNINativeMethod methodTable[] =
 {
-	{"startDownloading", "(J)V", (void *)startDownloading},
+	{"startDownloading", "()J", (void *)startDownloading},
 	{"stopDownloading",  "(J)V", (void *)stopDownloading}
 };
 

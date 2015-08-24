@@ -327,13 +327,18 @@ int downloader_get_timeout(Downloader *d)
 };
 
 #if defined(ANDROID) && !defined(USE_CURL)
-void downloader_stop(void* d_)
+void downloader_stop(Downloader* d)
 {
-	Downloader *d = (Downloader*) d_;
 	assert(d);
 	if (!d){
 		return;
 	}
+
+	if (d->thread_initialized){
+		LOGE("THREAD NOT INITIALIZED");
+		return;
+	}
+
 	http_client_reset(d->http_client);
 }
 #endif //defined(ANDROID) && !defined(USE_CURL)
