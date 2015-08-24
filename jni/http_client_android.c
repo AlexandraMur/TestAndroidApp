@@ -165,7 +165,7 @@ int http_client_on_load (JavaVM *vm_)
 	if (!g_class_MyDownloader){
 		return JNI_ERR;
 	}
-	g_method_download = (*env)->GetMethodID(env, g_class_MyDownloader, "download", "(Ljava/lang/String;I;J)I");
+	g_method_download = (*env)->GetMethodID(env, g_class_MyDownloader, "download", "(Ljava/lang/String;IJ)I");
 	if (!g_method_download){
 		return JNI_ERR;
 	}

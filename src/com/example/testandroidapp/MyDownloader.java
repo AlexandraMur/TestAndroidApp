@@ -36,14 +36,20 @@ public class MyDownloader {
 			int timeout = 1000 * 2;
 			connection.setConnectTimeout(timeout);
 			connection.setReadTimeout(timeout);
-			int responseCode = 0;
+			int responseCode = HttpURLConnection.HTTP_OK;
 			
-			while (responseCode != HttpURLConnection.HTTP_OK && counter <= custom_timeout) {
-				connection.connect();
+			do {
+				try {
+					connection.connect();
+				}catch(IOException e){
+					connection.disconnect();
+					counter += custom_timeout;
+					continue;
+				}
+				counter = 0;
 				responseCode = connection.getResponseCode();
-				connection.disconnect();
-				counter += custom_timeout;
-			}
+				
+			} while (responseCode != HttpURLConnection.HTTP_OK && counter <= custom_timeout);
 			
 			if (counter > custom_timeout){
 				return status;
@@ -52,12 +58,12 @@ public class MyDownloader {
 			counter = 0;
 			InputStream inputStream = connection.getInputStream();
 			
-			int bytesRead = -1;
+			int bytesRead = 0;
 	        int currentBytes = 0;
 	        byte[] buffer = new byte[BUFFER_SIZE];
 	        status = DOWNLOADER_STATUS_OK;
 	        
-			while (counter <= custom_timeout && bytesRead != -1) {
+			while ((counter <= custom_timeout) && (bytesRead != -1)) {
 				try {
 					bytesRead = inputStream.read(buffer);
 					currentBytes += bytesRead;
@@ -66,16 +72,18 @@ public class MyDownloader {
 		            
 		            if (shutdown != DOWNLOADER_STATUS_OK){
 		            	status = DOWNLOADER_STATUS_ERROR;
-		            	Log.i(TAG,"BREAK");
 		            	break;
 		            }
 				} catch(Exception e){
+					Log.e(TAG, e.toString());
+					status = DOWNLOADER_STATUS_ERROR;
 					counter += custom_timeout;
 					continue;
 				}
 				counter = 0;
+				status = DOWNLOADER_STATUS_OK;
 			}
-	        
+				
 	        inputStream.close();
 			connection.disconnect();
 			

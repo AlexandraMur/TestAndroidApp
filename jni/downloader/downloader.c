@@ -182,7 +182,6 @@ static DownloaderStatus httpclient_to_downloader_status(HttpClientStatus status)
 static void *worker_thread (void *arg)
 {
 	Downloader* d = (Downloader*)arg;
-	http_client_android_attach(d->vm);
 	http_client_set_timeout(d->http_client, d->timeout);
     while (1) {
 		pthread_mutex_lock(&d->mutex);
@@ -268,6 +267,7 @@ void downloader_destroy(Downloader *d)
 	if (!d) {
 		return;
 	}
+
 	if (d->thread_initialized) {
 		pthread_mutex_lock(&d->mutex);
 		d->shutdown = true;
@@ -336,7 +336,6 @@ void downloader_stop(void* d_){
 		return;
 	}
 	http_client_android_attach(d->vm);
-	//stop(d);
 	d->shutdown = 1;
 	pthread_cond_broadcast(&d->cv);
 }
