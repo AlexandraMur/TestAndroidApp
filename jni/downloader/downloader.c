@@ -183,6 +183,7 @@ static void *worker_thread (void *arg)
 {
 	Downloader* d = (Downloader*)arg;
 	http_client_android_attach(d->vm);
+	http_client_set_timeout(d->http_client, d->timeout);
     while (1) {
 		pthread_mutex_lock(&d->mutex);
         while (TAILQ_EMPTY(&d->jobs) && !d->shutdown){
@@ -222,7 +223,7 @@ static void *worker_thread (void *arg)
     return NULL;
 }
 
-Downloader *downloader_create(const IDownloader_Cb *cb, int timeout, void *arg)
+Downloader *downloader_create(const IDownloader_Cb *cb, void *arg)
 {
 	if (!cb) {
 		return NULL;
@@ -233,7 +234,7 @@ Downloader *downloader_create(const IDownloader_Cb *cb, int timeout, void *arg)
 	}
 	TAILQ_INIT(&d->jobs);
 	d->current_job = NULL;
-	d->timeout = timeout;
+	d->timeout = 0; // or define value?
 	d->jobs_count = 0;
 	d->shutdown = 0;
 	d->arg = arg;

@@ -88,11 +88,14 @@ static void* workFlow (void* arg_)
 	sync.mutex_flag = 1;
 	sync.cv_flag = 1;
 
-	int timeout = 1000 * 2;
-	d = downloader_create(&my_callbacks, timeout, &sync);
+	d = downloader_create(&my_callbacks, &sync);
 	if (!d){
 		goto exit;
 	}
+
+	int timeout = 1000 * 2;
+
+	downloader_set_timeout(d, timeout);
 
 	//const char *url = "http://bakhirev.biz/book/index.html";
 	//const char *url = "http://192.168.4.102:80/test.txt";

@@ -33,6 +33,8 @@ HttpClient* http_client_create (const IHttpClientCb *cb, void* args);
 HttpClientStatus http_client_download (HttpClient *c, const char *url);
 void http_client_reset (HttpClient *c);
 void http_client_destroy (HttpClient *c);
+void http_client_set_timeout(HttpClient *, int);
+int http_client_get_timeout(HttpClient *);
 
 #ifdef ANDROID
 	int http_client_on_load(JavaVM *vm_);

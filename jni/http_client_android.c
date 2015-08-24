@@ -25,14 +25,14 @@ static JavaVM *g_vm;
 static jclass g_class_MyDownloader;
 static jmethodID g_method_download;
 
-static void set_timeout(HttpClient *c, int timeout)
+void http_client_set_timeout(HttpClient *c, int timeout)
 {	if (!c){
 		return;
 	}
 	c->timeout = timeout;
 }
 
-static int get_timeout(HttpClient *c)
+int get_timeout(HttpClient *c)
 {
 	return c->timeout;
 }
@@ -99,10 +99,10 @@ HttpClientStatus http_client_download (HttpClient *c, const char *url)
 
 	HttpClientStatus result = HTTP_CLIENT_INSUFFICIENT_RESOURCE;
 	JNIEnv *pEnv;
-	/*if ((*g_vm)->AttachCurrentThreadAsDaemon(g_vm, &pEnv, NULL) != JNI_OK) {
+	if ((*g_vm)->AttachCurrentThread(g_vm, &pEnv, NULL) != JNI_OK) {
 		LOGE("AttachCurrentThread failed\n");
 		return result;
-	}*/
+	}
 
 	if ((*g_vm)->GetEnv(g_vm, (void**)(&pEnv), JNI_VERSION_1_6) != JNI_OK) {
 			return JNI_ERR;
@@ -119,7 +119,7 @@ HttpClientStatus http_client_download (HttpClient *c, const char *url)
 		goto done;
 	}
 	LOGI("Start download %s\n", url);
-	result = (*pEnv)->CallIntMethod(pEnv, obj, g_method_download, jurl, (jlong)c);
+	result = (*pEnv)->CallIntMethod(pEnv, obj, g_method_download, jurl, c->timeout, (jlong)c);
 	(*pEnv)->DeleteLocalRef(pEnv, jurl);
 
 done:

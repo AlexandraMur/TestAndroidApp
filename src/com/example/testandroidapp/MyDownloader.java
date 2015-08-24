@@ -19,7 +19,7 @@ public class MyDownloader {
 	
 	public MyDownloader(){}
 	
-	public int download(String sUrl, int timeout, long args) {
+	public int download(String sUrl, int custom_timeout, long args) {
 		int status = DOWNLOADER_STATUS_ERROR;
 		try {
 			URL url = new URL(sUrl);
@@ -32,36 +32,49 @@ public class MyDownloader {
 				contentLength = Integer.parseInt(values);
 			}			
 			
-			connection.setConnectTimeout(1000 * 2);
-			connection.setReadTimeout(1000 * 2);
-	        connection.connect();
-	        
-	        int responseCode = connection.getResponseCode();
-	        if (responseCode != HttpURLConnection.HTTP_OK) {
-	        	connection.disconnect();
-	        	Log.e(TAG,"Error connection");
-	        	return status;
-	        }
-	        
-	        InputStream inputStream = connection.getInputStream();
-	        
-	        int bytesRead = -1;
+			int counter = 0;
+			int timeout = 1000 * 2;
+			connection.setConnectTimeout(timeout);
+			connection.setReadTimeout(timeout);
+			int responseCode = 0;
+			
+			while (responseCode != HttpURLConnection.HTTP_OK && counter <= custom_timeout) {
+				connection.connect();
+				responseCode = connection.getResponseCode();
+				connection.disconnect();
+				counter += custom_timeout;
+			}
+			
+			if (counter > custom_timeout){
+				return status;
+			}
+			
+			counter = 0;
+			InputStream inputStream = connection.getInputStream();
+			
+			int bytesRead = -1;
 	        int currentBytes = 0;
-	        
 	        byte[] buffer = new byte[BUFFER_SIZE];
 	        status = DOWNLOADER_STATUS_OK;
-	        while ((bytesRead = inputStream.read(buffer)) != -1) {
-	        	currentBytes += bytesRead;
-	            progressCallback(contentLength, currentBytes, args);
-	            int shutdown = writeCallback(buffer, bytesRead, args);
-	            Log.i(TAG, Integer.toString(shutdown));
-	            
-	            if (shutdown != DOWNLOADER_STATUS_OK){
-	            	status = DOWNLOADER_STATUS_ERROR;
-	            	Log.i(TAG,"BREAK");
-	            	break;
-	            }
-	        }
+	        
+			while (counter <= custom_timeout && bytesRead != -1) {
+				try {
+					bytesRead = inputStream.read(buffer);
+					currentBytes += bytesRead;
+		            progressCallback(contentLength, currentBytes, args);
+		            int shutdown = writeCallback(buffer, bytesRead, args);
+		            
+		            if (shutdown != DOWNLOADER_STATUS_OK){
+		            	status = DOWNLOADER_STATUS_ERROR;
+		            	Log.i(TAG,"BREAK");
+		            	break;
+		            }
+				} catch(Exception e){
+					counter += custom_timeout;
+					continue;
+				}
+				counter = 0;
+			}
 	        
 	        inputStream.close();
 			connection.disconnect();
