@@ -42,6 +42,7 @@ struct Downloader
 	bool mutex_initialized;
 	bool cv_initialized;
 
+	int timeout;
 	int shutdown;
 	HttpClient *http_client;
 
@@ -188,11 +189,7 @@ static void *worker_thread (void *arg)
 			pthread_cond_wait(&d->cv, &d->mutex);
         }
         if (d->shutdown) {
-        	//
-        	//http_client_android_attach(d->vm);
-        	//
         	http_client_reset(d->http_client);
-        	//http_client_android_detach();
         	pthread_mutex_unlock(&d->mutex);
             break;
         }
@@ -208,7 +205,6 @@ static void *worker_thread (void *arg)
 			if (httpclient_to_downloader_status(status) != DOWNLOADER_STATUS_OK){
 				remove(d->current_job->file_name);
 			}
-			//http_client_android_detach();
 		}
 
 		fclose(d->file);
@@ -226,7 +222,7 @@ static void *worker_thread (void *arg)
     return NULL;
 }
 
-Downloader *downloader_create(const IDownloader_Cb *cb, void *arg)
+Downloader *downloader_create(const IDownloader_Cb *cb, int timeout, void *arg)
 {
 	if (!cb) {
 		return NULL;
@@ -236,12 +232,13 @@ Downloader *downloader_create(const IDownloader_Cb *cb, void *arg)
 		goto fail;
 	}
 	TAILQ_INIT(&d->jobs);
-	d->jobs_count = 0;
 	d->current_job = NULL;
+	d->timeout = timeout;
+	d->jobs_count = 0;
 	d->shutdown = 0;
-	d->cb = cb;
 	d->arg = arg;
 	d->vm = g_vm;
+	d->cb = cb;
 
 	d->http_client = http_client_create(&kHttpClientCb, d);
 	if (!d->http_client) {
@@ -319,13 +316,16 @@ int downloader_OnLoad(JavaVM *vm)
 #endif //defined(ANDROID) && !defined(USE_CURL)
 
 static void stop(Downloader *d){
-	http_client_android_attach(d->vm);
-	d->shutdown = 1;
-	//http_client_reset(d->http_client);
-	pthread_cond_broadcast(&d->cv);
-	http_client_android_detach();
 	LOGI("exit stop");
 }
+
+void downloader_set_timeout(Downloader *d, int timeout){
+	d->timeout = timeout;
+};
+
+int downloader_get_timeout(Downloader *d){
+	return d->timeout;
+};
 
 #if defined(ANDROID) && !defined(USE_CURL)
 void downloader_stop(void* d_){
@@ -334,8 +334,8 @@ void downloader_stop(void* d_){
 	if (!d){
 		return;
 	}
-
-	stop(d);
+	http_client_android_attach(d->vm);
+	//stop(d);
 	d->shutdown = 1;
 	pthread_cond_broadcast(&d->cv);
 }

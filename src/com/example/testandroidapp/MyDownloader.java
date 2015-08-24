@@ -19,7 +19,7 @@ public class MyDownloader {
 	
 	public MyDownloader(){}
 	
-	public int download(String sUrl, long args) {
+	public int download(String sUrl, int timeout, long args) {
 		int status = DOWNLOADER_STATUS_ERROR;
 		try {
 			URL url = new URL(sUrl);

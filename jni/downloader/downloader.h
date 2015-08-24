@@ -24,10 +24,12 @@ typedef struct {
 } IDownloader_Cb;
 
 
-Downloader* downloader_create(const IDownloader_Cb *, void* args);
+Downloader* downloader_create(const IDownloader_Cb *, int timeout, void* args);
 void downloader_destroy(Downloader*);
 DownloaderStatus downloader_add(Downloader *d, const char* url, const char* name_of_file);
 void downloader_stop(void*);
+void downloader_set_timeout(Downloader *, int);
+int downloader_get_timeout(Downloader *);
 
 #ifdef ANDROID
 int downloader_OnLoad(JavaVM *vm); // Deprecated

@@ -88,7 +88,8 @@ static void* workFlow (void* arg_)
 	sync.mutex_flag = 1;
 	sync.cv_flag = 1;
 
-	d = downloader_create(&my_callbacks, &sync);
+	int timeout = 1000 * 2;
+	d = downloader_create(&my_callbacks, timeout, &sync);
 	if (!d){
 		goto exit;
 	}

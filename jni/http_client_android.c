@@ -136,7 +136,6 @@ void http_client_reset (HttpClient *c)
 		LOGI("G VM");
 		return;
 	}
-
 	c->shutdown = 1;
 	// TODO: break current download if exist
 	// This method must be thread safe
@@ -145,6 +144,7 @@ void http_client_reset (HttpClient *c)
 void http_client_destroy (HttpClient *c)
 {
 	if (!c) {
+
 		return;
 	}
 	free(c);
@@ -165,7 +165,7 @@ int http_client_on_load (JavaVM *vm_)
 	if (!g_class_MyDownloader){
 		return JNI_ERR;
 	}
-	g_method_download = (*env)->GetMethodID(env, g_class_MyDownloader, "download", "(Ljava/lang/String;J)I");
+	g_method_download = (*env)->GetMethodID(env, g_class_MyDownloader, "download", "(Ljava/lang/String;I;J)I");
 	if (!g_method_download){
 		return JNI_ERR;
 	}
@@ -181,9 +181,9 @@ void http_client_android_detach(void)
 }
 
 void http_client_android_attach(JavaVM *vm){
-	g_vm = vm;
+	//g_vm = vm;
 	JNIEnv *pEnv;
-	if ((*g_vm)->AttachCurrentThreadAsDaemon(g_vm, &pEnv, NULL) != JNI_OK) {
+	if ((*vm)->AttachCurrentThread(vm, &pEnv, NULL) != JNI_OK) {
 		LOGE("AttachCurrentThread failed\n");
 		return;
 	}
