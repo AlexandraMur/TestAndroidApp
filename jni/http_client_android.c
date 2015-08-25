@@ -21,12 +21,8 @@ struct HttpClient
 	int shutdown;
 };
 
-static jmethodID g_method_disconnect;
 static jmethodID g_method_download;
-
 static jclass g_class_MyDownloader;
-static jclass g_obj_MyDownloader;
-
 static JavaVM *g_vm;
 
 void http_client_set_timeout(HttpClient *c, int timeout)
@@ -46,7 +42,7 @@ static int writeCallback (JNIEnv *env, jobject obj, jbyteArray byte_array, jint 
 	assert(client);
 
 	if (client->shutdown){
-		LOGI("SHUTDOWN");
+		client->shutdown = 0;
 		return 1;
 	}
 
@@ -64,9 +60,7 @@ static void progressCallback (JNIEnv *env, jobject obj, jint total_size, jint cu
 {
 	HttpClient *client = (HttpClient*)((intptr_t)args);
 	assert(client);
-	if (client->shutdown){
-			return;
-	}
+
 	if (client->cb->progress) {
 		client->cb->progress(client, client->arg, total_size, curr_size);
 	}
@@ -118,15 +112,13 @@ HttpClientStatus http_client_download (HttpClient *c, const char *url)
 		return result;
 	}
 
-	g_obj_MyDownloader = (*pEnv)->NewGlobalRef(pEnv, obj_MyDownloader);
-
 	jstring jurl = (*pEnv)->NewStringUTF(pEnv, url);
 	if (!jurl) {
 		LOGE("NewStringUTF failed\n");
 		goto done;
 	}
 	LOGI("Start download %s\n", url);
-	result = (*pEnv)->CallIntMethod(pEnv, g_obj_MyDownloader, g_method_download, jurl, c->timeout, (jlong)c);
+	result = (*pEnv)->CallIntMethod(pEnv, obj_MyDownloader, g_method_download, jurl, c->timeout, (jlong)c);
 	(*pEnv)->DeleteLocalRef(pEnv, jurl);
 
 done:
@@ -136,17 +128,12 @@ done:
 	return result;
 }
 
-void http_client_reset ()
+void http_client_reset (HttpClient *c)
 {
-	if (!g_vm){
+	if (!c){
 		return;
 	}
-	JNIEnv *pEnv;
-	if ((*g_vm)->AttachCurrentThread(g_vm, &pEnv, NULL) != JNI_OK) {
-		LOGE("AttachCurrentThread failed\n");
-		return;
-	}
-	(*pEnv)->CallVoidMethod(pEnv, g_obj_MyDownloader, g_method_disconnect);
+	c->shutdown = 1;
 }
 
 void http_client_destroy (HttpClient *c)
@@ -165,20 +152,18 @@ int http_client_on_load (JavaVM *vm_)
 	if ((*g_vm)->GetEnv(g_vm, (void**)(&env), JNI_VERSION_1_6) != JNI_OK) {
 		return JNI_ERR;
 	}
+
 	jclass tmp = (*env)->FindClass(env, "com/example/testandroidapp/MyDownloader");
 	if (!tmp){
 		return JNI_ERR;
 	}
+
 	g_class_MyDownloader = (*env)->NewGlobalRef(env, tmp);
 	if (!g_class_MyDownloader){
 		return JNI_ERR;
 	}
-	g_method_download = (*env)->GetMethodID(env, g_class_MyDownloader, "download", "(Ljava/lang/String;IJ)I");
-	if (!g_method_download){
-		return JNI_ERR;
-	}
 
-	g_method_disconnect = (*env)->GetMethodID(env, g_class_MyDownloader, "disconnect", "()V");
+	g_method_download = (*env)->GetMethodID(env, g_class_MyDownloader, "download", "(Ljava/lang/String;IJ)I");
 	if (!g_method_download){
 		return JNI_ERR;
 	}

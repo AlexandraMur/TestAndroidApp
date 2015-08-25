@@ -317,8 +317,8 @@ int downloader_get_timeout(Downloader *d)
 };
 
 #if defined(ANDROID) && !defined(USE_CURL)
-void downloader_stop()
+void downloader_stop(Downloader *d)
 {
-	http_client_reset();
+	http_client_reset(d->http_client);
 }
 #endif //defined(ANDROID) && !defined(USE_CURL)

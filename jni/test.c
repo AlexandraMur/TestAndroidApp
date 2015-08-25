@@ -12,6 +12,11 @@
 #define LOGW(fmt, ...) __android_log_print(ANDROID_LOG_WARN,  LOG_TAG, "%s: " fmt, __func__, ## __VA_ARGS__)
 #define LOGE(fmt, ...) __android_log_print(ANDROID_LOG_ERROR, LOG_TAG, "%s: " fmt, __func__, ## __VA_ARGS__)
 
+struct NativeContext
+{
+	Downloader *d;
+} g_ctx;
+
 typedef struct
 {
 	int num;
@@ -73,7 +78,7 @@ static void* workFlow (void* arg_)
 		.progress = &my_progress
 	};
 
-	Downloader *d = NULL;
+	g_ctx.d = NULL;
 	Playlist *playlist = NULL;
 
 	Semaphore sync = {0};
@@ -88,14 +93,14 @@ static void* workFlow (void* arg_)
 	sync.mutex_flag = 1;
 	sync.cv_flag = 1;
 
-	d = downloader_create(&my_callbacks, &sync);
-	if (!d){
+	g_ctx.d = downloader_create(&my_callbacks, &sync);
+	if (!g_ctx.d){
 		goto exit;
 	}
 
 	int timeout = 1000 * 2;
 
-	downloader_set_timeout(d, timeout);
+	downloader_set_timeout(g_ctx.d, timeout);
 
 	//const char *url = "http://bakhirev.biz/book/index.html";
 	//const char *url = "http://192.168.4.102:80/test.txt";
@@ -107,7 +112,7 @@ static void* workFlow (void* arg_)
 	sync.num++;
 	pthread_mutex_unlock(&sync.mutex);
 
-	int res = downloader_add(d, url, name);
+	int res = downloader_add(g_ctx.d, url, name);
 	if (res) {
 		goto exit;
 	}
@@ -134,13 +139,13 @@ static void* workFlow (void* arg_)
 		snprintf(new_name, length + 1, "%s%s", path, playlist->items[i].name);
 		free(playlist->items[i].name);
 		playlist->items[i].name = new_name;
-		downloader_add(d, playlist->items[i].uri, playlist->items[i].name);
+		downloader_add(g_ctx.d, playlist->items[i].uri, playlist->items[i].name);
 	}
 	semaphore_wait(&sync);
 
 exit:
 	playlist_destroy(playlist);
-	downloader_destroy(d);
+	downloader_destroy(g_ctx.d);
 
 	if (sync.mutex_flag) {
 		pthread_mutex_destroy(&sync.mutex);
@@ -159,7 +164,7 @@ static void startDownloading (jlong args)
 
 static void stopDownloading ()
 {
-	downloader_stop();
+	downloader_stop(g_ctx.d);
 }
 
 static JNINativeMethod methodTable[] =
