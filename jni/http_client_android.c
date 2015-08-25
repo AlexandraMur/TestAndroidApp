@@ -21,7 +21,6 @@ struct HttpClient
 	void *arg;
 	int timeout_connection;
 	int timeout_recieve;
-	int shutdown;
 };
 
 bool g_shutdown;
@@ -92,14 +91,12 @@ HttpClient* http_client_create (const IHttpClientCb *cb, void* arg)
 	}
 	c->cb = cb;
 	c->arg = arg;
-	c->shutdown = 0;
 	g_shutdown = false;
 	return c;
 }
 
 HttpClientStatus http_client_download (HttpClient *c, const char *url)
 {
-
 	if (!c || !url) {
 		return HTTP_CLIENT_ERROR;
 	}
@@ -140,7 +137,6 @@ done:
 void http_client_reset (HttpClient *c)
 {
 	assert(c);
-	c->shutdown = 1;
 	g_shutdown = true;
 }
 
@@ -154,7 +150,7 @@ static JNINativeMethod methodTable[] =
 {
 	{ "writeCallback",    "([BIJ)V", (void*)writeCallback },
 	{ "progressCallback", "(IIJ)V",  (void*)progressCallback },
-	{ "isShutdown",		  "()Z", (void*)isShutdown }
+	{ "isShutdown",		  "()Z", 	 (void*)isShutdown }
 };
 
 int http_client_on_load (JavaVM *vm_)
