@@ -71,6 +71,7 @@ public class MyDownloader {
 				if (stop == 1){
 	            	Log.i(TAG, "DISCONNECTED");
 	            	status = DOWNLOADER_STATUS_ERROR;
+	            	stop = 0;
 	            	break;
 	            }
 				

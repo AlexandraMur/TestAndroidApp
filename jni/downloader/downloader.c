@@ -54,15 +54,7 @@ struct Downloader
 	void *arg;
 
 	FILE *file;
-
-#ifdef ANDROID
-	JavaVM *vm;
-#endif
 };
-
-#ifdef ANDROID
-	JavaVM *g_vm;
-#endif
 
 static void data_cb (HttpClient *c, void *arg, const void *buffer, size_t size);
 static void progress_cb (HttpClient *c, void *arg, int64_t total_size, int64_t curr_size);
@@ -237,7 +229,6 @@ Downloader *downloader_create(const IDownloader_Cb *cb, void *arg)
 	d->jobs_count = 0;
 	d->shutdown = 0;
 	d->arg = arg;
-	d->vm = g_vm;
 	d->cb = cb;
 
 	d->http_client = http_client_create(&kHttpClientCb, d);
@@ -311,7 +302,6 @@ int downloader_add(Downloader *d, const char *url, const char *file_name)
 #if defined(ANDROID) && !defined(USE_CURL)
 int downloader_OnLoad(JavaVM *vm)
 {
-	g_vm = vm;
 	return http_client_on_load(vm);
 }
 #endif //defined(ANDROID) && !defined(USE_CURL)
