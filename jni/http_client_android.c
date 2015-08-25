@@ -21,9 +21,13 @@ struct HttpClient
 	int shutdown;
 };
 
-static JavaVM *g_vm;
-static jclass g_class_MyDownloader;
+static jmethodID g_method_disconnect;
 static jmethodID g_method_download;
+
+static jclass g_class_MyDownloader;
+static jclass g_obj_MyDownloader;
+
+static JavaVM *g_vm;
 
 void http_client_set_timeout(HttpClient *c, int timeout)
 {	if (!c){
@@ -108,44 +112,41 @@ HttpClientStatus http_client_download (HttpClient *c, const char *url)
 			return JNI_ERR;
 	}
 
-	jclass obj = (*pEnv)->AllocObject(pEnv, g_class_MyDownloader);
-	if (!obj) {
+	jclass obj_MyDownloader = (*pEnv)->AllocObject(pEnv, g_class_MyDownloader);
+	if (!obj_MyDownloader) {
 		LOGE("AllocObject failed\n");
 		return result;
 	}
+
+	g_obj_MyDownloader = (*pEnv)->NewGlobalRef(pEnv, obj_MyDownloader);
+
 	jstring jurl = (*pEnv)->NewStringUTF(pEnv, url);
 	if (!jurl) {
 		LOGE("NewStringUTF failed\n");
 		goto done;
 	}
 	LOGI("Start download %s\n", url);
-	result = (*pEnv)->CallIntMethod(pEnv, obj, g_method_download, jurl, c->timeout, (jlong)c);
+	result = (*pEnv)->CallIntMethod(pEnv, g_obj_MyDownloader, g_method_download, jurl, c->timeout, (jlong)c);
 	(*pEnv)->DeleteLocalRef(pEnv, jurl);
 
 done:
-	if (obj) {
-		(*pEnv)->DeleteLocalRef(pEnv, obj);
+	if (obj_MyDownloader) {
+		(*pEnv)->DeleteLocalRef(pEnv, obj_MyDownloader);
 	}
 	return result;
 }
 
-void http_client_reset (HttpClient *c)
+void http_client_reset ()
 {
-	LOGI("RESET");
-	if(!c){
-		LOGI("C");
-	}
 	if (!g_vm){
-		LOGI("VM");
+		return;
 	}
-
-	//JNIEnv *pEnv;
-	//if ((*g_vm)->AttachCurrentThread(g_vm, &pEnv, NULL) != JNI_OK) {
-		//LOGE("AttachCurrentThread failed\n");
-		//return;
-	//}
-
-	c->shutdown = 1;
+	JNIEnv *pEnv;
+	if ((*g_vm)->AttachCurrentThread(g_vm, &pEnv, NULL) != JNI_OK) {
+		LOGE("AttachCurrentThread failed\n");
+		return;
+	}
+	(*pEnv)->CallVoidMethod(pEnv, g_obj_MyDownloader, g_method_disconnect);
 }
 
 void http_client_destroy (HttpClient *c)
@@ -176,6 +177,12 @@ int http_client_on_load (JavaVM *vm_)
 	if (!g_method_download){
 		return JNI_ERR;
 	}
+
+	g_method_disconnect = (*env)->GetMethodID(env, g_class_MyDownloader, "disconnect", "()V");
+	if (!g_method_download){
+		return JNI_ERR;
+	}
+
 	if (JNI_OK != (*env)->RegisterNatives(env, g_class_MyDownloader, methodTable, sizeof(methodTable) / sizeof(methodTable[0]))) {
 		return JNI_ERR;
 	}

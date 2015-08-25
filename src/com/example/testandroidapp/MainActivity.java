@@ -15,8 +15,8 @@ public class MainActivity extends Activity{
 		System.loadLibrary("test");
 	}
 	
-	private native long startDownloading();
-	private native void stopDownloading(long args);
+	private native void startDownloading();
+	private native void stopDownloading();
 	
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -28,7 +28,7 @@ public class MainActivity extends Activity{
 			@Override
 			public void onClick(View v) {
 				Log.d(TAG, "Button DOWNLOAD pushed");
-				args = startDownloading();
+				startDownloading();
 			}
 		});
 		
@@ -37,9 +37,8 @@ public class MainActivity extends Activity{
 			@Override
 			public void onClick(View v) {
 				Log.d(TAG, "Button STOP pushed");
-				stopDownloading(args);
+				stopDownloading();
 			}
 		});
 	}
-	
 }

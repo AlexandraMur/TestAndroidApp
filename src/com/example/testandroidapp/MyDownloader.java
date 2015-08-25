@@ -16,8 +16,11 @@ public class MyDownloader {
 
 	private native int writeCallback(byte buffer[], int size, long args);
 	private native void progressCallback(int sizeTotal, int sizeCurr, long args);
+	private int stop;
 	
-	public MyDownloader(){}
+	public MyDownloader(){
+		stop = 0;
+	}
 	
 	public int download(String sUrl, int custom_timeout, long args) {
 		int status = DOWNLOADER_STATUS_ERROR;
@@ -64,16 +67,18 @@ public class MyDownloader {
 	        status = DOWNLOADER_STATUS_OK;
 	        
 			while ((counter <= custom_timeout) && (bytesRead != -1)) {
+				
+				if (stop == 1){
+	            	Log.i(TAG, "DISCONNECTED");
+	            	status = DOWNLOADER_STATUS_ERROR;
+	            	break;
+	            }
+				
 				try {
 					bytesRead = inputStream.read(buffer);
 					currentBytes += bytesRead;
 		            progressCallback(contentLength, currentBytes, args);
-		            int shutdown = writeCallback(buffer, bytesRead, args);
-		            
-		            if (shutdown != DOWNLOADER_STATUS_OK){
-		            	status = DOWNLOADER_STATUS_ERROR;
-		            	break;
-		            }
+		            writeCallback(buffer, bytesRead, args);
 				} catch(Exception e){
 					Log.e(TAG, e.toString());
 					status = DOWNLOADER_STATUS_ERROR;
@@ -99,5 +104,9 @@ public class MyDownloader {
         	Log.e(TAG, err.toString());
         }
 		return status;
+	}
+	
+	public void disconnect(){
+		stop = 1;
 	}
 }

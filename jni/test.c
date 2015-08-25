@@ -152,26 +152,20 @@ exit:
 	return NULL;
 }
 
-static jlong startDownloading (jlong args)
+static void startDownloading (jlong args)
 {
 	pthread_create(&g_thread, NULL, (void*)workFlow, (void*)args);
-	return args;
 }
 
-static void stopDownloading (jlong args)
+static void stopDownloading ()
 {
-	if (args == 0){
-		return;
-	}
-	Downloader *d = (Downloader*)((intptr_t)args);
-	assert(d);
-	downloader_stop(d);
+	downloader_stop();
 }
 
 static JNINativeMethod methodTable[] =
 {
-	{"startDownloading", "()J", (void *)startDownloading},
-	{"stopDownloading",  "(J)V", (void *)stopDownloading}
+	{"startDownloading", "()V", (void *)startDownloading},
+	{"stopDownloading",  "()V", (void *)stopDownloading}
 };
 
 jint JNI_OnLoad (JavaVM *vm, void *reserved)
