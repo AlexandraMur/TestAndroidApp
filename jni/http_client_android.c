@@ -8,6 +8,8 @@
 #include <stdio.h>
 #include <assert.h>
 
+#include <stdbool.h>
+
 #define LOG_TAG	"http_client"
 #define LOGI(fmt, ...) __android_log_print(ANDROID_LOG_INFO,  LOG_TAG, "%s: " fmt, __func__, ## __VA_ARGS__)
 #define LOGW(fmt, ...) __android_log_print(ANDROID_LOG_WARN,  LOG_TAG, "%s: " fmt, __func__, ## __VA_ARGS__)
@@ -17,34 +19,52 @@ struct HttpClient
 {
 	const IHttpClientCb *cb;
 	void *arg;
-	int timeout;
+	int timeout_connection;
+	int timeout_recieve;
 	int shutdown;
 };
 
+bool g_shutdown;
 static jmethodID g_method_download;
 static jclass g_class_MyDownloader;
 static JavaVM *g_vm;
 
-void http_client_set_timeout (HttpClient *c, int timeout)
+void http_client_set_timeout_connection (HttpClient *c, int timeout)
 {
 	assert(c);
-	c->timeout = timeout;
+	c->timeout_connection = timeout;
 }
 
-int http_client_get_timeout (HttpClient *c)
+void http_client_set_timeout_recieve (HttpClient *c, int timeout)
 {
 	assert(c);
-	return c->timeout;
+	c->timeout_recieve = timeout;
 }
 
-static int writeCallback (JNIEnv *env, jobject obj, jbyteArray byte_array, jint size, jlong args)
+int http_client_get_timeout_connection (HttpClient *c)
+{
+	assert(c);
+	return c->timeout_connection;
+}
+
+int http_client_get_timeout_recieve (HttpClient *c)
+{
+	assert(c);
+	return c->timeout_recieve;
+}
+
+bool isShutdown(){
+	return g_shutdown;
+}
+
+static void writeCallback (JNIEnv *env, jobject obj, jbyteArray byte_array, jint size, jlong args)
 {
 	HttpClient *client = (HttpClient*)((intptr_t)args);
 	assert(client);
 
-	if (client->shutdown){
+	if (client->shutdown) {
 		client->shutdown = 0;
-		return HTTP_CLIENT_STOP;
+		g_shutdown = 0;
 	}
 
 	jbyte* buffer_ptr = (*env)->GetByteArrayElements(env, byte_array, NULL);
@@ -54,7 +74,6 @@ static int writeCallback (JNIEnv *env, jobject obj, jbyteArray byte_array, jint 
 	}
 
 	(*env)->ReleaseByteArrayElements(env, byte_array, buffer_ptr, 0);
-	return HTTP_CLIENT_OK;
 }
 
 static void progressCallback (JNIEnv *env, jobject obj, jint total_size, jint curr_size, jlong args)
@@ -84,10 +103,12 @@ HttpClient* http_client_create (const IHttpClientCb *cb, void* arg)
 
 HttpClientStatus http_client_download (HttpClient *c, const char *url)
 {
+
 	if (!c || !url) {
 		return HTTP_CLIENT_ERROR;
 	}
 
+	g_shutdown = 0;
 	HttpClientStatus result = HTTP_CLIENT_INSUFFICIENT_RESOURCE;
 	JNIEnv *pEnv;
 	if ((*g_vm)->AttachCurrentThread(g_vm, &pEnv, NULL) != JNI_OK) {
@@ -111,7 +132,7 @@ HttpClientStatus http_client_download (HttpClient *c, const char *url)
 		goto done;
 	}
 	LOGI("Start download %s\n", url);
-	result = (*pEnv)->CallIntMethod(pEnv, obj_MyDownloader, g_method_download, jurl, c->timeout, (jlong)c);
+	result = (*pEnv)->CallIntMethod(pEnv, obj_MyDownloader, g_method_download, jurl, c->timeout_connection, c->timeout_recieve, (jlong)c);
 	(*pEnv)->DeleteLocalRef(pEnv, jurl);
 
 done:
@@ -125,6 +146,7 @@ void http_client_reset (HttpClient *c)
 {
 	assert(c);
 	c->shutdown = 1;
+	g_shutdown = 1;
 }
 
 void http_client_destroy (HttpClient *c)
@@ -135,8 +157,9 @@ void http_client_destroy (HttpClient *c)
 
 static JNINativeMethod methodTable[] =
 {
-	{ "writeCallback",    "([BIJ)I", (void*)writeCallback },
-	{ "progressCallback", "(IIJ)V",  (void*)progressCallback }
+	{ "writeCallback",    "([BIJ)V", (void*)writeCallback },
+	{ "progressCallback", "(IIJ)V",  (void*)progressCallback },
+	{ "isShutdown",		  "()Z"}
 };
 
 int http_client_on_load (JavaVM *vm_)
@@ -157,7 +180,7 @@ int http_client_on_load (JavaVM *vm_)
 		return JNI_ERR;
 	}
 
-	g_method_download = (*env)->GetMethodID(env, g_class_MyDownloader, "download", "(Ljava/lang/String;IJ)I");
+	g_method_download = (*env)->GetMethodID(env, g_class_MyDownloader, "download", "(Ljava/lang/String;IIJ)I");
 	if (!g_method_download){
 		return JNI_ERR;
 	}
@@ -165,6 +188,8 @@ int http_client_on_load (JavaVM *vm_)
 	if (JNI_OK != (*env)->RegisterNatives(env, g_class_MyDownloader, methodTable, sizeof(methodTable) / sizeof(methodTable[0]))) {
 		return JNI_ERR;
 	}
+
+	g_shutdown = 0;
 	return JNI_OK;
 }
 

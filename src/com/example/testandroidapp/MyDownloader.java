@@ -14,13 +14,13 @@ public class MyDownloader {
 	private static final String TAG = "MyDownloader";
 	private static final int BUFFER_SIZE = 4096;
 
-	private native int writeCallback(byte buffer[], int size, long args);
+	private native void writeCallback(byte buffer[], int size, long args);
 	private native void progressCallback(int sizeTotal, int sizeCurr, long args);
+	private native boolean isShutdown();
 	
-	public MyDownloader(){
-	}
+	public MyDownloader(){}
 	
-	public int download(String sUrl, int custom_timeout, long args) {
+	public int download(String sUrl, int custom_timeout_connection, int custom_timeout_recieve, long args) {
 		int status = DOWNLOADER_STATUS_ERROR;
 		try {
 			URL url = new URL(sUrl);
@@ -42,17 +42,17 @@ public class MyDownloader {
 			do {
 				try {
 					connection.connect();
-				}catch(IOException e){
+				} catch(IOException e) {
 					connection.disconnect();
-					counter += custom_timeout;
+					counter += timeout;
 					continue;
 				}
 				counter = 0;
 				responseCode = connection.getResponseCode();
 				
-			} while (responseCode != HttpURLConnection.HTTP_OK && counter <= custom_timeout);
+			} while (responseCode != HttpURLConnection.HTTP_OK && counter <= custom_timeout_connection);
 			
-			if (counter > custom_timeout){
+			if (counter > custom_timeout_connection){
 				return status;
 			}
 			
@@ -63,27 +63,26 @@ public class MyDownloader {
 	        int currentBytes = 0;
 	        byte[] buffer = new byte[BUFFER_SIZE];
 	        status = DOWNLOADER_STATUS_OK;
-	        
-			while ((counter <= custom_timeout) && (bytesRead != -1)) {	
+	        boolean shutdown = false;
+			while ((counter <= custom_timeout_recieve) && (bytesRead != -1) && !(shutdown = isShutdown())) {	
 				try {
 					bytesRead = inputStream.read(buffer);
 					currentBytes += bytesRead;
 		            progressCallback(contentLength, currentBytes, args);
-		            int shutdown = writeCallback(buffer, bytesRead, args);
-		            if (shutdown == 1){
-		            	status = DOWNLOADER_STATUS_ERROR;
-		            	break;
-		            }
-				} catch(Exception e){
+		            writeCallback(buffer, bytesRead, args);
+				} catch(Exception e) {
 					Log.e(TAG, e.toString());
 					status = DOWNLOADER_STATUS_ERROR;
-					counter += custom_timeout;
+					counter += timeout;
 					continue;
 				}
 				counter = 0;
 				status = DOWNLOADER_STATUS_OK;
 			}
-				
+			
+			if (shutdown){
+            	status = DOWNLOADER_STATUS_ERROR;
+			}
 	        inputStream.close();
 			connection.disconnect();
 			

@@ -100,7 +100,8 @@ static void* workFlow (void* arg_)
 
 	int timeout = 1000 * 2;
 
-	downloader_set_timeout(g_ctx.d, timeout);
+	downloader_set_timeout_connection(g_ctx.d, timeout);
+	downloader_set_timeout_recieve(g_ctx.d, timeout);
 
 	//const char *url = "http://public.tv/api/?s=9c1997663576a8b11d1c4f8becd57e52&c=playlist_full&date=2015-07-06";
 	const char *url = "http://192.168.4.102:80/test2.txt";
@@ -158,7 +159,7 @@ exit:
 static void startDownloading (jlong args)
 {
 	int result = pthread_create(&g_thread, NULL, (void*)workFlow, (void*)args);
-	assert(result == 1);
+	assert(result == 0);
 }
 
 static void stopDownloading ()

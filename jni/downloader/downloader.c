@@ -162,7 +162,6 @@ static DownloaderStatus httpclient_to_downloader_status(HttpClientStatus status)
 static void *worker_thread (void *arg)
 {
 	Downloader* d = (Downloader*)arg;
-	http_client_set_timeout(d->http_client, d->timeout);
     while (1) {
 		pthread_mutex_lock(&d->mutex);
         while (TAILQ_EMPTY(&d->jobs) && !d->shutdown){
@@ -294,17 +293,33 @@ int downloader_OnLoad(JavaVM *vm)
 }
 #endif //defined(ANDROID) && !defined(USE_CURL)
 
-void downloader_set_timeout(Downloader *d, int timeout)
+void downloader_set_timeout_connection(Downloader *d, int timeout)
 {
-	d->timeout = timeout;
+	assert(d);
+	http_client_set_timeout_connection(d->http_client, timeout);
 };
 
-int downloader_get_timeout(Downloader *d)
+void downloader_set_timeout_recieve(Downloader *d, int timeout)
 {
-	return d->timeout;
+	assert(d);
+	http_client_set_timeout_recieve(d->http_client, timeout);
+};
+
+int downloader_get_timeout_connection(Downloader *d)
+{
+	assert(d);
+	return http_client_get_timeout_connection(d->http_client);
+};
+
+int downloader_get_timeout_recieve(Downloader *d)
+{
+	assert(d);
+	return http_client_get_timeout_recieve(d->http_client);
 };
 
 void downloader_stop(Downloader *d)
 {
+	assert(d);
+	assert(d->http_client);
 	http_client_reset(d->http_client);
 }

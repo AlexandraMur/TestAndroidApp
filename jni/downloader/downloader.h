@@ -25,8 +25,10 @@ typedef struct {
 
 DownloaderStatus downloader_add(Downloader *d, const char *url, const char *name_of_file);
 Downloader* downloader_create(const IDownloader_Cb*, void *args);
-void downloader_set_timeout(Downloader*, int);
-int downloader_get_timeout(Downloader*);
+void downloader_set_timeout_connection(Downloader*, int);
+void downloader_set_timeout_recieve(Downloader*, int);
+int downloader_get_timeout_connection(Downloader*);
+int downloader_get_timeout_recieve(Downloader*);
 void downloader_destroy(Downloader*);
 void downloader_stop(Downloader*);
 

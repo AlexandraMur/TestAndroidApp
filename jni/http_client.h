@@ -35,8 +35,10 @@ HttpClient* http_client_create (const IHttpClientCb *cb, void* args);
 void http_client_destroy (HttpClient *c);
 void http_client_reset (HttpClient *c);
 
-void http_client_set_timeout (HttpClient *, int);
-int http_client_get_timeout (HttpClient *);
+void http_client_set_timeout_connection (HttpClient *, int);
+void http_client_set_timeout_recieve (HttpClient *, int);
+int http_client_get_timeout_connection (HttpClient *);
+int http_client_get_timeout_recieve (HttpClient *);
 
 #ifdef ANDROID
 	int http_client_on_load (JavaVM *vm_);
