@@ -23,8 +23,8 @@ public class MainActivity extends Activity{
 		super.onCreate(savedInstanceState);
 		setContentView(com.example.testandroidapp.R.layout.activity_main);
 		
-		View button1 = findViewById(com.example.testandroidapp.R.id.button1);
-		button1.setOnClickListener(new View.OnClickListener() {
+		View download_button = findViewById(com.example.testandroidapp.R.id.button1);
+		download_button.setOnClickListener(new View.OnClickListener() {
 			@Override
 			public void onClick(View v) {
 				Log.d(TAG, "Button DOWNLOAD pushed");
@@ -32,8 +32,8 @@ public class MainActivity extends Activity{
 			}
 		});
 		
-		View button2 = findViewById(com.example.testandroidapp.R.id.button2);
-		button2.setOnClickListener(new View.OnClickListener() {
+		View stop_button = findViewById(com.example.testandroidapp.R.id.button2);
+		stop_button.setOnClickListener(new View.OnClickListener() {
 			@Override
 			public void onClick(View v) {
 				Log.d(TAG, "Button STOP pushed");

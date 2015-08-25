@@ -25,17 +25,18 @@ static jmethodID g_method_download;
 static jclass g_class_MyDownloader;
 static JavaVM *g_vm;
 
-void http_client_set_timeout(HttpClient *c, int timeout)
-{	if (!c){
-		return;
-	}
+void http_client_set_timeout (HttpClient *c, int timeout)
+{
+	assert(c);
 	c->timeout = timeout;
 }
 
-int get_timeout(HttpClient *c)
+int http_client_get_timeout (HttpClient *c)
 {
+	assert(c);
 	return c->timeout;
 }
+
 static int writeCallback (JNIEnv *env, jobject obj, jbyteArray byte_array, jint size, jlong args)
 {
 	HttpClient *client = (HttpClient*)((intptr_t)args);
@@ -66,12 +67,6 @@ static void progressCallback (JNIEnv *env, jobject obj, jint total_size, jint cu
 	}
 }
 
-static JNINativeMethod methodTable[] =
-{
-	{ "writeCallback",    "([BIJ)I", (void*)writeCallback },
-	{ "progressCallback", "(IIJ)V",  (void*)progressCallback }
-};
-
 HttpClient* http_client_create (const IHttpClientCb *cb, void* arg)
 {
 	if (!cb) {
@@ -86,7 +81,6 @@ HttpClient* http_client_create (const IHttpClientCb *cb, void* arg)
 	c->shutdown = 0;
 	return c;
 }
-
 
 HttpClientStatus http_client_download (HttpClient *c, const char *url)
 {
@@ -129,20 +123,21 @@ done:
 
 void http_client_reset (HttpClient *c)
 {
-	if (!c){
-		return;
-	}
+	assert(c);
 	c->shutdown = 1;
 }
 
 void http_client_destroy (HttpClient *c)
 {
-	if (!c) {
-
-		return;
-	}
+	assert(c);
 	free(c);
 }
+
+static JNINativeMethod methodTable[] =
+{
+	{ "writeCallback",    "([BIJ)I", (void*)writeCallback },
+	{ "progressCallback", "(IIJ)V",  (void*)progressCallback }
+};
 
 int http_client_on_load (JavaVM *vm_)
 {

@@ -30,16 +30,17 @@ typedef struct {
     void (*progress)(HttpClient *c, void *arg, int64_t total_size, int64_t curr_size);
 } IHttpClientCb;
 
-HttpClient* http_client_create (const IHttpClientCb *cb, void* args);
 HttpClientStatus http_client_download (HttpClient *c, const char *url);
-void http_client_reset (HttpClient *c);
+HttpClient* http_client_create (const IHttpClientCb *cb, void* args);
 void http_client_destroy (HttpClient *c);
-void http_client_set_timeout(HttpClient *, int);
-int http_client_get_timeout(HttpClient *);
+void http_client_reset (HttpClient *c);
+
+void http_client_set_timeout (HttpClient *, int);
+int http_client_get_timeout (HttpClient *);
 
 #ifdef ANDROID
-	int http_client_on_load(JavaVM *vm_);
-	void http_client_android_detach(void);
+	int http_client_on_load (JavaVM *vm_);
+	void http_client_android_detach (void);
 #endif
 
 #ifdef __cplusplus

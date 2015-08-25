@@ -23,16 +23,15 @@ typedef struct {
 	void (*progress)(Downloader *d, void *args, int64_t curr_size, int64_t total_size);
 } IDownloader_Cb;
 
-
-Downloader* downloader_create(const IDownloader_Cb *, void* args);
+DownloaderStatus downloader_add(Downloader *d, const char *url, const char *name_of_file);
+Downloader* downloader_create(const IDownloader_Cb*, void *args);
+void downloader_set_timeout(Downloader*, int);
+int downloader_get_timeout(Downloader*);
 void downloader_destroy(Downloader*);
-DownloaderStatus downloader_add(Downloader *d, const char* url, const char* name_of_file);
-void downloader_stop(Downloader *);
-void downloader_set_timeout(Downloader *, int);
-int downloader_get_timeout(Downloader *);
+void downloader_stop(Downloader*);
 
 #ifdef ANDROID
-int downloader_OnLoad(JavaVM *vm); // Deprecated
+int downloader_OnLoad(JavaVM *vm);
 #endif
 
 #ifdef __cplusplus

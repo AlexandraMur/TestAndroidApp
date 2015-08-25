@@ -41,9 +41,9 @@ struct Downloader
 	bool thread_initialized;
 	bool mutex_initialized;
 	bool cv_initialized;
-
-	int timeout;
 	int shutdown;
+	int timeout;
+
 	HttpClient *http_client;
 
 	Jobs jobs;
@@ -71,13 +71,6 @@ static void data_cb (HttpClient *c, void *arg, const void *buffer, size_t size)
 	assert(d);
 	assert(d->file);
 
-	pthread_mutex_lock(&d->mutex);
-	if (d->shutdown){
-		LOGI("SD");
-		pthread_mutex_unlock(&d->mutex);
-		return;
-	}
-	pthread_mutex_unlock(&d->mutex);
 	if (buffer && size) {
 		fwrite(buffer, 1, size, d->file);
 	}
@@ -87,12 +80,7 @@ static void progress_cb (HttpClient *c, void *arg, int64_t total_size, int64_t c
 {
 	Downloader *d = (Downloader*)arg;
 	assert(d);
-	pthread_mutex_lock(&d->mutex);
-	if (d->shutdown){
-		pthread_mutex_unlock(&d->mutex);
-		return;
-	}
-	pthread_mutex_unlock(&d->mutex);
+
 	if (d->cb->progress) {
 		d->cb->progress(d, d->arg, curr_size, total_size);
 	}
@@ -225,9 +213,9 @@ Downloader *downloader_create(const IDownloader_Cb *cb, void *arg)
 	}
 	TAILQ_INIT(&d->jobs);
 	d->current_job = NULL;
-	d->timeout = 0; // or define value?
+	d->timeout = 2 * 1000;
+	d->shutdown = false;
 	d->jobs_count = 0;
-	d->shutdown = 0;
 	d->arg = arg;
 	d->cb = cb;
 
@@ -266,10 +254,10 @@ void downloader_destroy(Downloader *d)
 		pthread_mutex_unlock(&d->mutex);
 		pthread_join(d->thread, NULL);
 	}
-	if(d->mutex_initialized){
+	if(d->mutex_initialized) {
 		pthread_mutex_destroy(&d->mutex);
 	}
-	if(d->cv_initialized){
+	if(d->cv_initialized) {
 		pthread_cond_destroy(&d->cv);
 	}
 	if (d->http_client) {
@@ -316,9 +304,7 @@ int downloader_get_timeout(Downloader *d)
 	return d->timeout;
 };
 
-#if defined(ANDROID) && !defined(USE_CURL)
 void downloader_stop(Downloader *d)
 {
 	http_client_reset(d->http_client);
 }
-#endif //defined(ANDROID) && !defined(USE_CURL)

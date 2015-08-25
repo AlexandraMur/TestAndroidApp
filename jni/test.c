@@ -28,7 +28,7 @@ typedef struct
 
 static pthread_t g_thread;
 
-static void semaphore_wait(Semaphore *sync)
+static void semaphore_wait (Semaphore *sync)
 {
 	pthread_mutex_lock(&sync->mutex);
 	while(sync->num){
@@ -37,14 +37,14 @@ static void semaphore_wait(Semaphore *sync)
 	pthread_mutex_unlock(&sync->mutex);
 }
 
-static void semaphore_inc(Semaphore *sync)
+static void semaphore_inc (Semaphore *sync)
 {
 	pthread_mutex_lock(&sync->mutex);
 	sync->num++;
 	pthread_mutex_unlock(&sync->mutex);
 }
 
-static void semaphore_dec(Semaphore *sync)
+static void semaphore_dec (Semaphore *sync)
 {
 	pthread_mutex_lock(&sync->mutex);
 	sync->num--;
@@ -60,7 +60,7 @@ static void my_complete (Downloader *d, void *args, int status, size_t number_fi
 
 static void my_progress (Downloader *d, void *args, int64_t curr_size, int64_t total_size)
 {
-	if (total_size == 0){
+	if (total_size == 0) {
 		LOGI("%d", curr_size);
 	} else {
 		int currPercent = (curr_size * 100) / total_size;
@@ -94,7 +94,7 @@ static void* workFlow (void* arg_)
 	sync.cv_flag = 1;
 
 	g_ctx.d = downloader_create(&my_callbacks, &sync);
-	if (!g_ctx.d){
+	if (!g_ctx.d) {
 		goto exit;
 	}
 
@@ -102,8 +102,6 @@ static void* workFlow (void* arg_)
 
 	downloader_set_timeout(g_ctx.d, timeout);
 
-	//const char *url = "http://bakhirev.biz/book/index.html";
-	//const char *url = "http://192.168.4.102:80/test.txt";
 	//const char *url = "http://public.tv/api/?s=9c1997663576a8b11d1c4f8becd57e52&c=playlist_full&date=2015-07-06";
 	const char *url = "http://192.168.4.102:80/test2.txt";
 	const char *name = "/sdcard/file.json";
@@ -125,7 +123,7 @@ static void* workFlow (void* arg_)
 	}
 
 	int parse_res = playlist_parse(playlist, name);
-	if (!parse_res){
+	if (!parse_res) {
 		LOGE("Error parse\n");
 	}
 	for (int i = 0; i < playlist->items_count; i++) {
@@ -159,7 +157,8 @@ exit:
 
 static void startDownloading (jlong args)
 {
-	pthread_create(&g_thread, NULL, (void*)workFlow, (void*)args);
+	int result = pthread_create(&g_thread, NULL, (void*)workFlow, (void*)args);
+	assert(result == 1);
 }
 
 static void stopDownloading ()
