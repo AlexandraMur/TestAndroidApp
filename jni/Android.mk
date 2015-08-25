@@ -37,6 +37,7 @@ LOCAL_CFLAGS += -std=gnu99
 LOCAL_MODULE := test
 LOCAL_SRC_FILES := test.c
 LOCAL_STATIC_LIBRARIES += libparser
+LOCAL_STATIC_LIBRARIES += httpclient
 LOCAL_STATIC_LIBRARIES += libdownloader
 LOCAL_LDFLAGS += -llog
 include $(BUILD_SHARED_LIBRARY) 

@@ -6,6 +6,7 @@
 #include <pthread.h>
 #include <downloader/downloader.h>
 #include <parser/parser.h>
+#include <http_client.h>
 
 #define LOG_TAG	"test"
 #define LOGI(fmt, ...) __android_log_print(ANDROID_LOG_INFO,  LOG_TAG, "%s: " fmt, __func__, ## __VA_ARGS__)
@@ -178,7 +179,7 @@ jint JNI_OnLoad (JavaVM *vm, void *reserved)
 	if (!vm) {
 		return JNI_ERR;
 	}
-	if (downloader_OnLoad(vm) != JNI_OK) {
+	if (http_client_on_load(vm) != JNI_OK) {
 		return JNI_ERR;
 	}
 	JNIEnv* env;
@@ -190,5 +191,6 @@ jint JNI_OnLoad (JavaVM *vm, void *reserved)
 		return JNI_ERR;
 	}
 	(*env)->RegisterNatives(env, class, methodTable, sizeof(methodTable) / sizeof(methodTable[0]) );
+
 	return JNI_VERSION_1_6;
 }

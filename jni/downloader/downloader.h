@@ -32,10 +32,6 @@ int downloader_get_timeout_recieve(Downloader*);
 void downloader_destroy(Downloader*);
 void downloader_stop(Downloader*);
 
-#ifdef ANDROID
-int downloader_OnLoad(JavaVM *vm);
-#endif
-
 #ifdef __cplusplus
 }
 #endif

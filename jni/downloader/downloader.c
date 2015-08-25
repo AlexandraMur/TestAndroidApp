@@ -286,13 +286,6 @@ int downloader_add(Downloader *d, const char *url, const char *file_name)
 	return DOWNLOADER_STATUS_OK;
 }
 
-#if defined(ANDROID) && !defined(USE_CURL)
-int downloader_OnLoad(JavaVM *vm)
-{
-	return http_client_on_load(vm);
-}
-#endif //defined(ANDROID) && !defined(USE_CURL)
-
 void downloader_set_timeout_connection(Downloader *d, int timeout)
 {
 	assert(d);
