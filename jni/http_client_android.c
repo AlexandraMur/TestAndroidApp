@@ -159,7 +159,7 @@ static JNINativeMethod methodTable[] =
 {
 	{ "writeCallback",    "([BIJ)V", (void*)writeCallback },
 	{ "progressCallback", "(IIJ)V",  (void*)progressCallback },
-	{ "isShutdown",		  "()Z"}
+	{ "isShutdown",		  "()Z", (void*)isShutdown }
 };
 
 int http_client_on_load (JavaVM *vm_)

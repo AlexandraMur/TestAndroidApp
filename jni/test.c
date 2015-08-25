@@ -176,20 +176,25 @@ static JNINativeMethod methodTable[] =
 
 jint JNI_OnLoad (JavaVM *vm, void *reserved)
 {
+	LOGE("Entered");
 	if (!vm) {
 		return JNI_ERR;
 	}
-	if (http_client_on_load(vm) != JNI_OK) {
-		return JNI_ERR;
-	}
+
 	JNIEnv* env;
 	if ((*vm)->GetEnv(vm, (void**)(&env), JNI_VERSION_1_6) != JNI_OK) {
 		return JNI_ERR;
 	}
+
+	if (http_client_on_load(vm) != JNI_OK) {
+		return JNI_ERR;
+	}
+
 	jclass class = (*env)->FindClass(env,"com/example/testandroidapp/MainActivity");
 	if (!class){
 		return JNI_ERR;
 	}
+
 	(*env)->RegisterNatives(env, class, methodTable, sizeof(methodTable) / sizeof(methodTable[0]) );
 
 	return JNI_VERSION_1_6;
