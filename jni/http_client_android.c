@@ -43,7 +43,7 @@ static int writeCallback (JNIEnv *env, jobject obj, jbyteArray byte_array, jint 
 
 	if (client->shutdown){
 		client->shutdown = 0;
-		return 1;
+		return HTTP_CLIENT_STOP;
 	}
 
 	jbyte* buffer_ptr = (*env)->GetByteArrayElements(env, byte_array, NULL);
@@ -53,7 +53,7 @@ static int writeCallback (JNIEnv *env, jobject obj, jbyteArray byte_array, jint 
 	}
 
 	(*env)->ReleaseByteArrayElements(env, byte_array, buffer_ptr, 0);
-	return 0;
+	return HTTP_CLIENT_OK;
 }
 
 static void progressCallback (JNIEnv *env, jobject obj, jint total_size, jint curr_size, jlong args)
@@ -91,8 +91,7 @@ HttpClient* http_client_create (const IHttpClientCb *cb, void* arg)
 HttpClientStatus http_client_download (HttpClient *c, const char *url)
 {
 	if (!c || !url) {
-		LOGE("Invalid args\n");
-		return HTTP_CLIENT_INVALID_ARG;
+		return HTTP_CLIENT_ERROR;
 	}
 
 	HttpClientStatus result = HTTP_CLIENT_INSUFFICIENT_RESOURCE;
