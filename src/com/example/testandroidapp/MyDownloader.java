@@ -63,8 +63,8 @@ public class MyDownloader {
 	        int currentBytes = 0;
 	        byte[] buffer = new byte[BUFFER_SIZE];
 	        status = DOWNLOADER_STATUS_OK;
-	        boolean shutdown = false;
-			while ((counter <= custom_timeout_recieve) && (bytesRead != -1) && !(shutdown = isShutdown())) {	
+	        boolean shutdown = isShutdown();
+			while ((counter <= custom_timeout_recieve) && (bytesRead != -1) && !(shutdown)) {	
 				try {
 					bytesRead = inputStream.read(buffer);
 					currentBytes += bytesRead;
@@ -78,11 +78,13 @@ public class MyDownloader {
 				}
 				counter = 0;
 				status = DOWNLOADER_STATUS_OK;
+				shutdown = isShutdown();
 			}
 			
 			if (shutdown){
             	status = DOWNLOADER_STATUS_ERROR;
 			}
+			
 	        inputStream.close();
 			connection.disconnect();
 			

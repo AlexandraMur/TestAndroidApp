@@ -313,6 +313,5 @@ int downloader_get_timeout_recieve(Downloader *d)
 void downloader_stop(Downloader *d)
 {
 	assert(d);
-	assert(d->http_client);
 	http_client_reset(d->http_client);
 }

@@ -62,11 +62,6 @@ static void writeCallback (JNIEnv *env, jobject obj, jbyteArray byte_array, jint
 	HttpClient *client = (HttpClient*)((intptr_t)args);
 	assert(client);
 
-	if (client->shutdown) {
-		client->shutdown = 0;
-		g_shutdown = 0;
-	}
-
 	jbyte* buffer_ptr = (*env)->GetByteArrayElements(env, byte_array, NULL);
 
 	if (client->cb->data) {
@@ -98,6 +93,7 @@ HttpClient* http_client_create (const IHttpClientCb *cb, void* arg)
 	c->cb = cb;
 	c->arg = arg;
 	c->shutdown = 0;
+	g_shutdown = false;
 	return c;
 }
 
@@ -107,8 +103,7 @@ HttpClientStatus http_client_download (HttpClient *c, const char *url)
 	if (!c || !url) {
 		return HTTP_CLIENT_ERROR;
 	}
-
-	g_shutdown = 0;
+	g_shutdown = false;
 	HttpClientStatus result = HTTP_CLIENT_INSUFFICIENT_RESOURCE;
 	JNIEnv *pEnv;
 	if ((*g_vm)->AttachCurrentThread(g_vm, &pEnv, NULL) != JNI_OK) {
@@ -146,7 +141,7 @@ void http_client_reset (HttpClient *c)
 {
 	assert(c);
 	c->shutdown = 1;
-	g_shutdown = 1;
+	g_shutdown = true;
 }
 
 void http_client_destroy (HttpClient *c)
@@ -189,7 +184,7 @@ int http_client_on_load (JavaVM *vm_)
 		return JNI_ERR;
 	}
 
-	g_shutdown = 0;
+	g_shutdown = false;
 	return JNI_OK;
 }
 
