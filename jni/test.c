@@ -138,6 +138,7 @@ static void* workFlow (void* arg_)
 		downloader_add(g_ctx.d, g_ctx.playlist->items[i].uri, g_ctx.playlist->items[i].name);
 	}
 	semaphore_wait(&g_ctx.sync);
+	return NULL;
 }
 
 static void startDownloading (jlong args)
@@ -161,7 +162,9 @@ static int nativeInit()
 
 	g_ctx.d = NULL;
 	g_ctx.playlist = NULL;
-	//g_ctx.sync = {0};
+	g_ctx.sync.num = 0;
+	g_ctx.sync.mutex_flag = 0;
+	g_ctx.sync.cv_flag = 0;
 
 	int mutex_error = pthread_mutex_init(&g_ctx.sync.mutex, NULL);
 	int cv_error = pthread_cond_init(&g_ctx.sync.cv, NULL);
@@ -184,7 +187,6 @@ static int nativeInit()
 	downloader_set_timeout_recieve(g_ctx.d, timeout);
 
 	return CLIENT_OK;
-
 exit:
 	nativeDeinit();
 	return CLIENT_ERROR;
@@ -193,7 +195,9 @@ exit:
 static JNINativeMethod methodTable[] =
 {
 	{"startDownloading", "()V", (void *)startDownloading},
-	{"stopDownloading",  "()V", (void *)stopDownloading}
+	{"stopDownloading",  "()V", (void *)stopDownloading},
+	{"nativeInit",  "()I", (void *)nativeInit},
+	{"nativeDeinit",  "()V", (void *)nativeDeinit}
 };
 
 jint JNI_OnLoad (JavaVM *vm, void *reserved)

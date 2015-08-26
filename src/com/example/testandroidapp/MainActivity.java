@@ -17,7 +17,7 @@ public class MainActivity extends Activity{
 	
 	private native void startDownloading();
 	private native void stopDownloading();
-	private native void nativeInit();
+	private native int nativeInit();
 	private native void nativeDeinit();
 	
 	@Override
