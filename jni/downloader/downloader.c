@@ -165,8 +165,10 @@ static void *worker_thread (void *arg)
     while (1) {
 		pthread_mutex_lock(&d->mutex);
         while (TAILQ_EMPTY(&d->jobs) && !d->shutdown){
+        	LOGI("WAITING");
 			pthread_cond_wait(&d->cv, &d->mutex);
         }
+        LOGI("GO");
         if (d->shutdown) {
         	http_client_reset(d->http_client);
         	pthread_mutex_unlock(&d->mutex);
@@ -203,6 +205,7 @@ static void *worker_thread (void *arg)
 
 Downloader *downloader_create(const IDownloader_Cb *cb, void *arg)
 {
+	LOGI("ENTRED downloader_create");
 	if (!cb) {
 		return NULL;
 	}
@@ -234,6 +237,7 @@ Downloader *downloader_create(const IDownloader_Cb *cb, void *arg)
     	goto fail;
     }
 	d->thread_initialized = true;
+	LOGI("DOWNLOADER CREATED");
 	return d;
 fail:
 	downloader_destroy(d);

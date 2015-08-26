@@ -7,11 +7,22 @@
 #include <downloader/downloader.h>
 #include <parser/parser.h>
 #include <http_client.h>
+#include <sys/queue.h>
 
 #define LOG_TAG	"test"
 #define LOGI(fmt, ...) __android_log_print(ANDROID_LOG_INFO,  LOG_TAG, "%s: " fmt, __func__, ## __VA_ARGS__)
 #define LOGW(fmt, ...) __android_log_print(ANDROID_LOG_WARN,  LOG_TAG, "%s: " fmt, __func__, ## __VA_ARGS__)
 #define LOGE(fmt, ...) __android_log_print(ANDROID_LOG_ERROR, LOG_TAG, "%s: " fmt, __func__, ## __VA_ARGS__)
+
+typedef struct Task
+{
+	TAILQ_ENTRY(Task) next;
+    char *task_name;
+    void *ref;
+} Task;
+
+typedef TAILQ_HEAD(Tasks, Task) Tasks;
+
 
 typedef enum {
     CLIENT_OK,
@@ -80,6 +91,7 @@ static void my_progress (Downloader *d, void *args, int64_t curr_size, int64_t t
 
 static void nativeDeinit()
 {
+	LOGE("EXTRA DEINIT 3");
 	playlist_destroy(g_ctx.playlist);
 	downloader_destroy(g_ctx.d);
 
@@ -154,6 +166,7 @@ static void stopDownloading ()
 
 static int nativeInit()
 {
+	LOGI("INIT\n");
 	IDownloader_Cb my_callbacks =
 	{
 		.complete = &my_complete,
@@ -170,6 +183,7 @@ static int nativeInit()
 	int cv_error = pthread_cond_init(&g_ctx.sync.cv, NULL);
 
 	if (mutex_error || cv_error){
+		LOGE("EXTRA DEINIT 1");
 		goto exit;
 	}
 
@@ -178,6 +192,7 @@ static int nativeInit()
 
 	g_ctx.d = downloader_create(&my_callbacks, &g_ctx.sync);
 	if (!g_ctx.d) {
+		LOGE("EXTRA DEINIT 2");
 		goto exit;
 	}
 
