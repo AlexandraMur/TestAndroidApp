@@ -15,8 +15,8 @@ public class MainActivity extends Activity{
 		System.loadLibrary("test");
 	}
 	
-	private native void startDownloading();
-	private native void stopDownloading();
+	private native void nativeStartDownloading();
+	private native void nativeStopDownloading();
 	private native int nativeInit();
 	private native void nativeDeinit();
 	
@@ -39,7 +39,7 @@ public class MainActivity extends Activity{
 			@Override
 			public void onClick(View v) {
 				Log.d(TAG, "Button DOWNLOAD pushed");
-				startDownloading();
+				nativeStartDownloading();
 			}
 		});
 		
@@ -48,7 +48,7 @@ public class MainActivity extends Activity{
 			@Override
 			public void onClick(View v) {
 				Log.d(TAG, "Button STOP pushed");
-				stopDownloading();
+				nativeStopDownloading();
 			}
 		});
 	}

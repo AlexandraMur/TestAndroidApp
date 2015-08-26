@@ -164,20 +164,9 @@ static void* downloadFlow (void* arg_)
 	return NULL;
 }
 
-static void nativeStartDownloading (jlong args)
-{
-	int result = pthread_create(&g_thread, NULL, (void*)downloadFlow, (void*)args);
-	assert(result == 0);
-}
-
-static void nativeStopDownloading ()
-{
-	downloader_stop(g_ctx.d);
-}
-
 static Task* get_task ()
 {
-	assert(g_ctx.count == 0);
+	assert(g_ctx.count);
 	Task *task = TAILQ_FIRST(&g_ctx.tasks);
 	TAILQ_REMOVE(&g_ctx.tasks, task, next);
 	g_ctx.count--;
@@ -186,12 +175,10 @@ static Task* get_task ()
 
 static void* taskFlow (void *args)
 {
-	LOGI("taskFlow");
 	while(1)
 	{
 		pthread_mutex_lock(&g_ctx.mutex);
 		while (TAILQ_EMPTY(&g_ctx.tasks) && !g_ctx.shutdown){
-			LOGI("WAITING");
 			pthread_cond_wait(&g_ctx.cv, &g_ctx.mutex);
 		}
 		if (g_ctx.shutdown) {
@@ -201,7 +188,6 @@ static void* taskFlow (void *args)
 
 		g_ctx.current_task = get_task();
 		pthread_mutex_unlock(&g_ctx.mutex);
-		LOGI("DO TASK");
 	}
 }
 
@@ -250,7 +236,7 @@ static void clear_jobs (Downloader *d)
 	assert(g_ctx.count == 0);
 }
 
-static int nativeAddTask (char *name, jlong args)
+static int addTask (char *name, void *args)
 {
 	Task *task = task_create(name);
 	if (!task) {
@@ -279,6 +265,7 @@ static int initDownloader ()
 	g_ctx.sync.num = 0;
 	g_ctx.sync.mutex_flag = 0;
 	g_ctx.sync.cv_flag = 0;
+	g_ctx.count = 0;
 
 	g_ctx.thread_initialized = 0;
 	g_ctx.mutex_initialized = 0;
@@ -340,6 +327,26 @@ exit:
 		pthread_cond_destroy(&g_ctx.cv);
 	}
 	return CLIENT_ERROR;
+}
+static void startDownloading()
+{
+	//int result = pthread_create(&g_thread, NULL, (void*)downloadFlow, (void*)args);
+	//assert(result == 0);
+}
+
+static void stopDownloading()
+{
+	downloader_stop(g_ctx.d);
+}
+
+static void nativeStartDownloading (jlong args)
+{
+	addTask("startDownloading", NULL);
+}
+
+static void nativeStopDownloading ()
+{
+	addTask("stopDownloading", NULL);
 }
 
 static JNINativeMethod methodTable[] =
