@@ -13,10 +13,11 @@
 #define LOGW(fmt, ...) __android_log_print(ANDROID_LOG_WARN,  LOG_TAG, "%s: " fmt, __func__, ## __VA_ARGS__)
 #define LOGE(fmt, ...) __android_log_print(ANDROID_LOG_ERROR, LOG_TAG, "%s: " fmt, __func__, ## __VA_ARGS__)
 
-struct NativeContext
-{
-	Downloader *d;
-} g_ctx;
+typedef enum {
+    CLIENT_OK,
+	CLIENT_ERROR
+	// ...
+} ClientStatus;
 
 typedef struct
 {
@@ -28,6 +29,13 @@ typedef struct
 } Semaphore;
 
 static pthread_t g_thread;
+
+struct NativeContext
+{
+	Downloader *d;
+	Semaphore sync;
+	Playlist *playlist;
+} g_ctx;
 
 static void semaphore_wait (Semaphore *sync)
 {
@@ -70,91 +78,66 @@ static void my_progress (Downloader *d, void *args, int64_t curr_size, int64_t t
 	return;
 }
 
+static void nativeDeinit()
+{
+	playlist_destroy(g_ctx.playlist);
+	downloader_destroy(g_ctx.d);
+
+	if (g_ctx.sync.mutex_flag) {
+		pthread_mutex_destroy(&g_ctx.sync.mutex);
+	}
+	if (g_ctx.sync.cv_flag) {
+		pthread_cond_destroy(&g_ctx.sync.cv);
+	}
+	LOGI("finished\n");
+}
+
 static void* workFlow (void* arg_)
 {
 	long arg = (long) arg_;
-	IDownloader_Cb my_callbacks =
-	{
-		.complete = &my_complete,
-		.progress = &my_progress
-	};
-
-	g_ctx.d = NULL;
-	Playlist *playlist = NULL;
-
-	Semaphore sync = {0};
-
-	int mutex_error = pthread_mutex_init(&sync.mutex, NULL);
-	int cv_error = pthread_cond_init(&sync.cv, NULL);
-
-	if (mutex_error || cv_error){
-		goto exit;
-	}
-
-	sync.mutex_flag = 1;
-	sync.cv_flag = 1;
-
-	g_ctx.d = downloader_create(&my_callbacks, &sync);
-	if (!g_ctx.d) {
-		goto exit;
-	}
-
-	int timeout = 1000 * 2;
-
-	downloader_set_timeout_connection(g_ctx.d, timeout);
-	downloader_set_timeout_recieve(g_ctx.d, timeout);
-
 	//const char *url = "http://public.tv/api/?s=9c1997663576a8b11d1c4f8becd57e52&c=playlist_full&date=2015-07-06";
 	const char *url = "http://192.168.4.102:80/test2.txt";
 	const char *name = "/sdcard/file.json";
 
-	pthread_mutex_lock(&sync.mutex);
-	sync.num++;
-	pthread_mutex_unlock(&sync.mutex);
+	pthread_mutex_lock(&g_ctx.sync.mutex);
+	g_ctx.sync.num++;
+	pthread_mutex_unlock(&g_ctx.sync.mutex);
 
 	int res = downloader_add(g_ctx.d, url, name);
 	if (res) {
-		goto exit;
+		nativeDeinit();
+		return NULL;
 	}
-	semaphore_wait(&sync);
+	semaphore_wait(&g_ctx.sync);
 	LOGI("Playlist downloaded\n");
 
-	playlist = playlist_create();
-	if (!playlist) {
-		goto exit;
+	g_ctx.playlist = playlist_create();
+	if (!g_ctx.playlist) {
+		nativeDeinit();
+		return NULL;
 	}
 
-	int parse_res = playlist_parse(playlist, name);
+	int parse_res = playlist_parse(g_ctx.playlist, name);
 	if (!parse_res) {
 		LOGE("Error parse\n");
 	}
-	for (int i = 0; i < playlist->items_count; i++) {
-		semaphore_inc(&sync);
+	for (int i = 0; i < g_ctx.playlist->items_count; i++) {
+		semaphore_inc(&g_ctx.sync);
 		char *path = "/sdcard/";
-		size_t length = strlen(playlist->items[i].name) + strlen(path);
+		size_t length = strlen(g_ctx.playlist->items[i].name) + strlen(path);
 		char *new_name = malloc(length + 1);
+
 		if (!new_name){
-			goto exit;
+			nativeDeinit();
+			return NULL;
 		}
-		snprintf(new_name, length + 1, "%s%s", path, playlist->items[i].name);
-		free(playlist->items[i].name);
-		playlist->items[i].name = new_name;
-		downloader_add(g_ctx.d, playlist->items[i].uri, playlist->items[i].name);
-	}
-	semaphore_wait(&sync);
 
-exit:
-	playlist_destroy(playlist);
-	downloader_destroy(g_ctx.d);
-
-	if (sync.mutex_flag) {
-		pthread_mutex_destroy(&sync.mutex);
+		snprintf(new_name, length + 1, "%s%s", path, g_ctx.playlist->items[i].name);
+		free(g_ctx.playlist->items[i].name);
+		g_ctx.playlist->items[i].name = new_name;
+		downloader_add(g_ctx.d, g_ctx.playlist->items[i].uri, g_ctx.playlist->items[i].name);
 	}
-	if (sync.cv_flag) {
-		pthread_cond_destroy(&sync.cv);
-	}
-	LOGI("finished\n");
-	return NULL;
+	semaphore_wait(&g_ctx.sync);
 }
 
 static void startDownloading (jlong args)
@@ -166,6 +149,45 @@ static void startDownloading (jlong args)
 static void stopDownloading ()
 {
 	downloader_stop(g_ctx.d);
+}
+
+static int nativeInit()
+{
+	IDownloader_Cb my_callbacks =
+	{
+		.complete = &my_complete,
+		.progress = &my_progress
+	};
+
+	g_ctx.d = NULL;
+	g_ctx.playlist = NULL;
+	//g_ctx.sync = {0};
+
+	int mutex_error = pthread_mutex_init(&g_ctx.sync.mutex, NULL);
+	int cv_error = pthread_cond_init(&g_ctx.sync.cv, NULL);
+
+	if (mutex_error || cv_error){
+		goto exit;
+	}
+
+	g_ctx.sync.mutex_flag = 1;
+	g_ctx.sync.cv_flag = 1;
+
+	g_ctx.d = downloader_create(&my_callbacks, &g_ctx.sync);
+	if (!g_ctx.d) {
+		goto exit;
+	}
+
+	int timeout = 1000 * 2;
+
+	downloader_set_timeout_connection(g_ctx.d, timeout);
+	downloader_set_timeout_recieve(g_ctx.d, timeout);
+
+	return CLIENT_OK;
+
+exit:
+	nativeDeinit();
+	return CLIENT_ERROR;
 }
 
 static JNINativeMethod methodTable[] =

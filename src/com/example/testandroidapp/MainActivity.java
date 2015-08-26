@@ -17,12 +17,14 @@ public class MainActivity extends Activity{
 	
 	private native void startDownloading();
 	private native void stopDownloading();
+	private native void nativeInit();
+	private native void nativeDeinit();
 	
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		setContentView(com.example.testandroidapp.R.layout.activity_main);
-		
+
 		View download_button = findViewById(com.example.testandroidapp.R.id.button1);
 		download_button.setOnClickListener(new View.OnClickListener() {
 			@Override
@@ -45,11 +47,12 @@ public class MainActivity extends Activity{
 	@Override
 	protected void onResume(){
 		super.onResume();
-		
+		nativeInit();
 	}
 	
 	@Override
 	protected void onPause(){
 		super.onPause();
+		nativeDeinit();
 	}
 }
