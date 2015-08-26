@@ -165,10 +165,9 @@ static void *worker_thread (void *arg)
     while (1) {
 		pthread_mutex_lock(&d->mutex);
         while (TAILQ_EMPTY(&d->jobs) && !d->shutdown){
-        	LOGI("WAITING");
 			pthread_cond_wait(&d->cv, &d->mutex);
         }
-        LOGI("GO");
+
         if (d->shutdown) {
         	http_client_reset(d->http_client);
         	pthread_mutex_unlock(&d->mutex);
