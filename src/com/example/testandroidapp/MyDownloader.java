@@ -16,7 +16,7 @@ public class MyDownloader {
 
 	private native void writeCallback(byte buffer[], int size, long args);
 	private native void progressCallback(int sizeTotal, int sizeCurr, long args);
-	private native boolean isShutdown();
+	private native boolean isShutdown(long args);
 	
 	public MyDownloader(){}
 	
@@ -63,7 +63,7 @@ public class MyDownloader {
 	        int currentBytes = 0;
 	        byte[] buffer = new byte[BUFFER_SIZE];
 	        status = DOWNLOADER_STATUS_OK;
-	        boolean shutdown = isShutdown();
+	        boolean shutdown = isShutdown(args);
 			while ((counter <= custom_timeout_recieve) && (bytesRead != -1) && !(shutdown)) {	
 				try {
 					bytesRead = inputStream.read(buffer);
@@ -72,16 +72,18 @@ public class MyDownloader {
 		            writeCallback(buffer, bytesRead, args);
 				} catch(Exception e) {
 					Log.e(TAG, e.toString());
+					shutdown = isShutdown(args);
 					status = DOWNLOADER_STATUS_ERROR;
 					counter += timeout;
 					continue;
 				}
 				counter = 0;
 				status = DOWNLOADER_STATUS_OK;
-				shutdown = isShutdown();
+				shutdown = isShutdown(args);
 			}
 			
 			if (shutdown){
+				Log.e(TAG, "shutdown");
             	status = DOWNLOADER_STATUS_ERROR;
 			}
 			

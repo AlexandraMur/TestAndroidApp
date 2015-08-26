@@ -176,7 +176,6 @@ static JNINativeMethod methodTable[] =
 
 jint JNI_OnLoad (JavaVM *vm, void *reserved)
 {
-	LOGE("Entered");
 	if (!vm) {
 		return JNI_ERR;
 	}

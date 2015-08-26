@@ -21,9 +21,9 @@ struct HttpClient
 	void *arg;
 	int timeout_connection;
 	int timeout_recieve;
+	bool shutdown;
 };
 
-bool g_shutdown;
 static jmethodID g_method_download;
 static jclass g_class_MyDownloader;
 static JavaVM *g_vm;
@@ -52,8 +52,11 @@ int http_client_get_timeout_recieve (HttpClient *c)
 	return c->timeout_recieve;
 }
 
-bool isShutdown(){
-	return g_shutdown;
+bool isShutdown (JNIEnv *env, jobject obj, jlong args)
+{
+	HttpClient *client = (HttpClient*)((intptr_t)args);
+	assert(client);
+	return client->shutdown;
 }
 
 static void writeCallback (JNIEnv *env, jobject obj, jbyteArray byte_array, jint size, jlong args)
@@ -91,7 +94,7 @@ HttpClient* http_client_create (const IHttpClientCb *cb, void* arg)
 	}
 	c->cb = cb;
 	c->arg = arg;
-	g_shutdown = false;
+	c->shutdown = false;
 	return c;
 }
 
@@ -100,7 +103,7 @@ HttpClientStatus http_client_download (HttpClient *c, const char *url)
 	if (!c || !url) {
 		return HTTP_CLIENT_ERROR;
 	}
-	g_shutdown = false;
+	c->shutdown = false;
 	HttpClientStatus result = HTTP_CLIENT_INSUFFICIENT_RESOURCE;
 	JNIEnv *pEnv;
 	if ((*g_vm)->AttachCurrentThread(g_vm, &pEnv, NULL) != JNI_OK) {
@@ -123,6 +126,7 @@ HttpClientStatus http_client_download (HttpClient *c, const char *url)
 		LOGE("NewStringUTF failed\n");
 		goto done;
 	}
+
 	LOGI("Start download %s\n", url);
 	result = (*pEnv)->CallIntMethod(pEnv, obj_MyDownloader, g_method_download, jurl, c->timeout_connection, c->timeout_recieve, (jlong)c);
 	(*pEnv)->DeleteLocalRef(pEnv, jurl);
@@ -137,7 +141,9 @@ done:
 void http_client_reset (HttpClient *c)
 {
 	assert(c);
-	g_shutdown = true;
+	c->shutdown = true;
+	if (c->shutdown)
+		LOGE("OK");
 }
 
 void http_client_destroy (HttpClient *c)
@@ -150,7 +156,7 @@ static JNINativeMethod methodTable[] =
 {
 	{ "writeCallback",    "([BIJ)V", (void*)writeCallback },
 	{ "progressCallback", "(IIJ)V",  (void*)progressCallback },
-	{ "isShutdown",		  "()Z", 	 (void*)isShutdown }
+	{ "isShutdown",		  "(J)Z", 	 (void*)isShutdown }
 };
 
 int http_client_on_load (JavaVM *vm_)
@@ -179,8 +185,6 @@ int http_client_on_load (JavaVM *vm_)
 	if (JNI_OK != (*env)->RegisterNatives(env, g_class_MyDownloader, methodTable, sizeof(methodTable) / sizeof(methodTable[0]))) {
 		return JNI_ERR;
 	}
-
-	g_shutdown = false;
 	return JNI_OK;
 }
 
