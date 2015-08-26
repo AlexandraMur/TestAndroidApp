@@ -18,7 +18,7 @@ typedef struct Task
 {
 	TAILQ_ENTRY(Task) next;
     char *task_name;
-//    void *ref;
+    char *ref;
 } Task;
 
 typedef TAILQ_HEAD(Tasks, Task) Tasks;
@@ -57,6 +57,9 @@ struct NativeContext
 	Tasks tasks;
 	Task *current_task;
 	int count;
+
+	void (*start_ref)();
+	void (*stop_ref)();
 
 } g_ctx;
 
@@ -101,6 +104,36 @@ static void my_progress (Downloader *d, void *args, int64_t curr_size, int64_t t
 	return;
 }
 
+static void task_destroy(Task *task)
+{
+	if (!task) {
+		return;
+	}
+	if (task->task_name) {
+		free(task->task_name);
+		task->task_name = NULL;
+	}
+	free(task);
+}
+
+static Task* get_task ()
+{
+	assert(g_ctx.count);
+	Task *task = TAILQ_FIRST(&g_ctx.tasks);
+	TAILQ_REMOVE(&g_ctx.tasks, task, next);
+	g_ctx.count--;
+	return task;
+}
+
+static void clear_jobs ()
+{
+	while (TAILQ_FIRST(&g_ctx.tasks)) {
+		Task *task = get_task();
+		task_destroy(task);
+	}
+	assert(g_ctx.count == 0);
+}
+
 static void nativeDeinit()
 {
 	playlist_destroy(g_ctx.playlist);
@@ -112,6 +145,8 @@ static void nativeDeinit()
 	if (g_ctx.sync.cv_flag) {
 		pthread_cond_destroy(&g_ctx.sync.cv);
 	}
+
+	clear_jobs();
 	LOGI("finished\n");
 }
 
@@ -164,15 +199,6 @@ static void* downloadFlow (void* arg_)
 	return NULL;
 }
 
-static Task* get_task ()
-{
-	assert(g_ctx.count);
-	Task *task = TAILQ_FIRST(&g_ctx.tasks);
-	TAILQ_REMOVE(&g_ctx.tasks, task, next);
-	g_ctx.count--;
-	return task;
-}
-
 static void* taskFlow (void *args)
 {
 	while(1)
@@ -187,20 +213,23 @@ static void* taskFlow (void *args)
 		}
 
 		g_ctx.current_task = get_task();
+		int result = pthread_create(&g_thread, NULL, g_ctx.current_task->ref, (void*)args);
+		assert(result == 0);
 		pthread_mutex_unlock(&g_ctx.mutex);
 	}
 }
 
-static void task_destroy(Task *task)
+static void startDownloading()
 {
-	if (!task) {
-		return;
-	}
-	if (task->task_name) {
-		free(task->task_name);
-		task->task_name = NULL;
-	}
-	free(task);
+	LOGI("StartDownloading thread");
+	//int result = pthread_create(&g_thread, NULL, (void*)downloadFlow, (void*)args);
+	//assert(result == 0);
+}
+
+static void stopDownloading()
+{
+	LOGI("StopDownloading thread");
+	//downloader_stop(g_ctx.d);
 }
 
 static Task* task_create (const char *file)
@@ -214,6 +243,15 @@ static Task* task_create (const char *file)
 	if (!task->task_name) {
 		goto fail;
 	}
+
+	if (task->task_name == "startDownloading"){
+		task->ref = &startDownloading;
+	}
+
+	if (task->task_name == "stopDownloading"){
+		task->ref = &stopDownloading;
+	}
+
 	return task;
 fail:
 	task_destroy(task);
@@ -225,15 +263,6 @@ static void put_task (Task *task)
 	g_ctx.count++;
 	assert(task);
 	TAILQ_INSERT_TAIL(&g_ctx.tasks, task, next);
-}
-
-static void clear_jobs (Downloader *d)
-{
-	while (TAILQ_FIRST(&g_ctx.tasks)) {
-		Task *task = get_task();
-		task_destroy(task);
-	}
-	assert(g_ctx.count == 0);
 }
 
 static int addTask (char *name, void *args)
@@ -327,16 +356,6 @@ exit:
 		pthread_cond_destroy(&g_ctx.cv);
 	}
 	return CLIENT_ERROR;
-}
-static void startDownloading()
-{
-	//int result = pthread_create(&g_thread, NULL, (void*)downloadFlow, (void*)args);
-	//assert(result == 0);
-}
-
-static void stopDownloading()
-{
-	downloader_stop(g_ctx.d);
 }
 
 static void nativeStartDownloading (jlong args)
