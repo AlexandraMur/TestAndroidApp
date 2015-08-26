@@ -59,6 +59,7 @@ struct NativeContext
 
 } g_ctx;
 
+static JavaVM *g_vm;
 static void semaphore_wait (Semaphore *sync)
 {
 	pthread_mutex_lock(&sync->mutex);
@@ -183,6 +184,7 @@ static Task* get_task ()
 
 static void* taskFlow (void *args)
 {
+	LOGI("taskFlow");
 	while(1)
 	{
 		pthread_mutex_lock(&g_ctx.mutex);
@@ -201,34 +203,55 @@ static void* taskFlow (void *args)
 	}
 }
 
-static int nativeInit()
+static int initDownloader ()
 {
-	LOGI("INIT\n");
 	IDownloader_Cb my_callbacks =
-	{
-		.complete = &my_complete,
-		.progress = &my_progress
-	};
+		{
+			.complete = &my_complete,
+			.progress = &my_progress
+		};
 
-	g_ctx.d = NULL;
-	g_ctx.playlist = NULL;
-	g_ctx.sync.num = 0;
-	g_ctx.sync.mutex_flag = 0;
-	g_ctx.sync.cv_flag = 0;
+		g_ctx.d = NULL;
+		g_ctx.playlist = NULL;
+		g_ctx.sync.num = 0;
+		g_ctx.sync.mutex_flag = 0;
+		g_ctx.sync.cv_flag = 0;
 
-	g_ctx.thread_initialized = 0;
-	g_ctx.mutex_initialized = 0;
-	g_ctx.cv_initialized = 0;
+		g_ctx.thread_initialized = 0;
+		g_ctx.mutex_initialized = 0;
+		g_ctx.cv_initialized = 0;
 
-	int sync_mutex_error = pthread_mutex_init(&g_ctx.sync.mutex, NULL);
-	int sync_cv_error = pthread_cond_init(&g_ctx.sync.cv, NULL);
+		int sync_mutex_error = pthread_mutex_init(&g_ctx.sync.mutex, NULL);
+		int sync_cv_error = pthread_cond_init(&g_ctx.sync.cv, NULL);
 
-	if (sync_mutex_error || sync_cv_error){
-		goto exit;
+		if (sync_mutex_error || sync_cv_error){
+			goto exit;
+		}
+
+		g_ctx.sync.mutex_flag = 1;
+		g_ctx.sync.cv_flag = 1;
+
+		g_ctx.d = downloader_create(&my_callbacks, &g_ctx.sync);
+		if (!g_ctx.d) {
+			goto exit;
+		}
+
+		int timeout = 1000 * 2;
+
+		downloader_set_timeout_connection(g_ctx.d, timeout);
+		downloader_set_timeout_recieve(g_ctx.d, timeout);
+
+		return CLIENT_OK;
+exit:
+		nativeDeinit();
+		return CLIENT_ERROR;
+}
+
+static int nativeInit ()
+{
+	if (initDownloader()) {
+		return CLIENT_ERROR;
 	}
-
-	g_ctx.sync.mutex_flag = 1;
-	g_ctx.sync.cv_flag = 1;
 
 	int task_mutex_error = pthread_mutex_init(&g_ctx.mutex, NULL);
 	int task_cv_error = pthread_cond_init(&g_ctx.cv, NULL);
@@ -240,19 +263,11 @@ static int nativeInit()
 	g_ctx.mutex_initialized = 1;
 	g_ctx.cv_initialized = 1;
 
-	g_ctx.d = downloader_create(&my_callbacks, &g_ctx.sync);
-	if (!g_ctx.d) {
+	TAILQ_INIT(&g_ctx.tasks);
+
+	if (pthread_create(&g_task_thread, NULL, (void*)taskFlow, (void*)g_ctx.d)) {
 		goto exit;
 	}
-
-	int timeout = 1000 * 2;
-
-	downloader_set_timeout_connection(g_ctx.d, timeout);
-	downloader_set_timeout_recieve(g_ctx.d, timeout);
-
-	TAILQ_INIT(g_ctx.tasks);
-
-	int task_thread_result = pthread_create(&g_task_thread, NULL, (void*)taskFlow, (void*)g_ctx.d);
 	return CLIENT_OK;
 exit:
 	nativeDeinit();
@@ -273,6 +288,7 @@ jint JNI_OnLoad (JavaVM *vm, void *reserved)
 		return JNI_ERR;
 	}
 
+	g_vm = vm;
 	JNIEnv* env;
 	if ((*vm)->GetEnv(vm, (void**)(&env), JNI_VERSION_1_6) != JNI_OK) {
 		return JNI_ERR;
