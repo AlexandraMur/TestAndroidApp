@@ -18,7 +18,7 @@ typedef struct Task
 {
 	TAILQ_ENTRY(Task) next;
     char *task_name;
-    void *ref;
+//    void *ref;
 } Task;
 
 typedef TAILQ_HEAD(Tasks, Task) Tasks;
@@ -56,6 +56,7 @@ struct NativeContext
 	int shutdown;
 	Tasks tasks;
 	Task *current_task;
+	int count;
 
 } g_ctx;
 
@@ -163,21 +164,23 @@ static void* downloadFlow (void* arg_)
 	return NULL;
 }
 
-static void startDownloading (jlong args)
+static void nativeStartDownloading (jlong args)
 {
 	int result = pthread_create(&g_thread, NULL, (void*)downloadFlow, (void*)args);
 	assert(result == 0);
 }
 
-static void stopDownloading ()
+static void nativeStopDownloading ()
 {
 	downloader_stop(g_ctx.d);
 }
 
 static Task* get_task ()
 {
+	assert(g_ctx.count == 0);
 	Task *task = TAILQ_FIRST(&g_ctx.tasks);
 	TAILQ_REMOVE(&g_ctx.tasks, task, next);
+	g_ctx.count--;
 	return task;
 }
 
@@ -202,48 +205,109 @@ static void* taskFlow (void *args)
 	}
 }
 
+static void task_destroy(Task *task)
+{
+	if (!task) {
+		return;
+	}
+	if (task->task_name) {
+		free(task->task_name);
+		task->task_name = NULL;
+	}
+	free(task);
+}
+
+static Task* task_create (const char *file)
+{
+	Task *task = calloc(1, sizeof(*task));
+	if (!task) {
+		goto fail;
+	}
+
+	task->task_name = strdup(file);
+	if (!task->task_name) {
+		goto fail;
+	}
+	return task;
+fail:
+	task_destroy(task);
+	return NULL;
+}
+
+static void put_task (Task *task)
+{
+	g_ctx.count++;
+	assert(task);
+	TAILQ_INSERT_TAIL(&g_ctx.tasks, task, next);
+}
+
+static void clear_jobs (Downloader *d)
+{
+	while (TAILQ_FIRST(&g_ctx.tasks)) {
+		Task *task = get_task();
+		task_destroy(task);
+	}
+	assert(g_ctx.count == 0);
+}
+
+static int nativeAddTask (char *name, jlong args)
+{
+	Task *task = task_create(name);
+	if (!task) {
+		return CLIENT_ERROR;
+	}
+
+	pthread_mutex_lock(&g_ctx.mutex);
+	LOGI("Put task: %s\n", task->task_name);
+	put_task(task);
+	pthread_cond_broadcast(&g_ctx.cv);
+	pthread_mutex_unlock(&g_ctx.mutex);
+
+	return CLIENT_OK;
+}
+
 static int initDownloader ()
 {
 	IDownloader_Cb my_callbacks =
-		{
-			.complete = &my_complete,
-			.progress = &my_progress
-		};
+	{
+		.complete = &my_complete,
+		.progress = &my_progress
+	};
 
-		g_ctx.d = NULL;
-		g_ctx.playlist = NULL;
-		g_ctx.sync.num = 0;
-		g_ctx.sync.mutex_flag = 0;
-		g_ctx.sync.cv_flag = 0;
+	g_ctx.d = NULL;
+	g_ctx.playlist = NULL;
+	g_ctx.sync.num = 0;
+	g_ctx.sync.mutex_flag = 0;
+	g_ctx.sync.cv_flag = 0;
 
-		g_ctx.thread_initialized = 0;
-		g_ctx.mutex_initialized = 0;
-		g_ctx.cv_initialized = 0;
+	g_ctx.thread_initialized = 0;
+	g_ctx.mutex_initialized = 0;
+	g_ctx.cv_initialized = 0;
 
-		int sync_mutex_error = pthread_mutex_init(&g_ctx.sync.mutex, NULL);
-		int sync_cv_error = pthread_cond_init(&g_ctx.sync.cv, NULL);
+	int sync_mutex_error = pthread_mutex_init(&g_ctx.sync.mutex, NULL);
+	int sync_cv_error = pthread_cond_init(&g_ctx.sync.cv, NULL);
 
-		if (sync_mutex_error || sync_cv_error){
-			goto exit;
-		}
+	if (sync_mutex_error || sync_cv_error){
+		goto exit;
+	}
 
-		g_ctx.sync.mutex_flag = 1;
-		g_ctx.sync.cv_flag = 1;
+	g_ctx.sync.mutex_flag = 1;
+	g_ctx.sync.cv_flag = 1;
 
-		g_ctx.d = downloader_create(&my_callbacks, &g_ctx.sync);
-		if (!g_ctx.d) {
-			goto exit;
-		}
+	g_ctx.d = downloader_create(&my_callbacks, &g_ctx.sync);
+	if (!g_ctx.d) {
+		goto exit;
+	}
 
-		int timeout = 1000 * 2;
+	int timeout = 1000 * 2;
 
-		downloader_set_timeout_connection(g_ctx.d, timeout);
-		downloader_set_timeout_recieve(g_ctx.d, timeout);
+	downloader_set_timeout_connection(g_ctx.d, timeout);
+	downloader_set_timeout_recieve(g_ctx.d, timeout);
 
-		return CLIENT_OK;
+	return CLIENT_OK;
 exit:
-		nativeDeinit();
-		return CLIENT_ERROR;
+	nativeDeinit();
+	return CLIENT_ERROR;
 }
 
 static int nativeInit ()
@@ -280,8 +344,8 @@ exit:
 
 static JNINativeMethod methodTable[] =
 {
-	{"startDownloading", "()V", (void *)startDownloading},
-	{"stopDownloading",  "()V", (void *)stopDownloading},
+	{"nativeStartDownloading", "()V", (void *)nativeStartDownloading},
+	{"nativeStopDownloading",  "()V", (void *)nativeStopDownloading},
 	{"nativeInit",  "()I", (void *)nativeInit},
 	{"nativeDeinit",  "()V", (void *)nativeDeinit}
 };
@@ -292,7 +356,6 @@ jint JNI_OnLoad (JavaVM *vm, void *reserved)
 		return JNI_ERR;
 	}
 
-	g_vm = vm;
 	JNIEnv* env;
 	if ((*vm)->GetEnv(vm, (void**)(&env), JNI_VERSION_1_6) != JNI_OK) {
 		return JNI_ERR;
