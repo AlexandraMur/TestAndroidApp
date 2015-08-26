@@ -59,7 +59,6 @@ struct NativeContext
 
 } g_ctx;
 
-static JavaVM *g_vm;
 static void semaphore_wait (Semaphore *sync)
 {
 	pthread_mutex_lock(&sync->mutex);
@@ -270,7 +269,12 @@ static int nativeInit ()
 	}
 	return CLIENT_OK;
 exit:
-	nativeDeinit();
+	if (g_ctx.mutex_initialized) {
+		pthread_mutex_destroy(&g_ctx.mutex);
+	}
+	if (g_ctx.cv_initialized) {
+		pthread_cond_destroy(&g_ctx.cv);
+	}
 	return CLIENT_ERROR;
 }
 
