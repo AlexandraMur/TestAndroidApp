@@ -38,6 +38,10 @@ public class MyDownloader {
 			connection.setConnectTimeout(timeout);
 			connection.setReadTimeout(timeout);
 			int responseCode = HttpURLConnection.HTTP_OK;
+			boolean shutdown = isShutdown(args);
+			if (shutdown) {
+				return DOWNLOADER_STATUS_ERROR;
+			}
 			
 			do {
 				try {
@@ -49,10 +53,10 @@ public class MyDownloader {
 				}
 				counter = 0;
 				responseCode = connection.getResponseCode();
-				
-			} while (responseCode != HttpURLConnection.HTTP_OK && counter <= custom_timeout_connection);
+				shutdown = isShutdown(args);
+			} while (responseCode != HttpURLConnection.HTTP_OK && counter <= custom_timeout_connection && !shutdown);
 			
-			if (counter > custom_timeout_connection){
+			if (counter > custom_timeout_connection) {
 				return status;
 			}
 			
@@ -63,7 +67,7 @@ public class MyDownloader {
 	        int currentBytes = 0;
 	        byte[] buffer = new byte[BUFFER_SIZE];
 	        status = DOWNLOADER_STATUS_OK;
-	        boolean shutdown = isShutdown(args);
+	        shutdown = isShutdown(args);
 			while ((counter <= custom_timeout_recieve) && (bytesRead != -1) && !(shutdown)) {	
 				try {
 					bytesRead = inputStream.read(buffer);
