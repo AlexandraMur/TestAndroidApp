@@ -83,7 +83,6 @@ public class MyDownloader {
 			}
 			
 			if (shutdown){
-				Log.e(TAG, "shutdown");
             	status = DOWNLOADER_STATUS_ERROR;
 			}
 			
@@ -101,7 +100,6 @@ public class MyDownloader {
         } catch (Exception err) {
         	Log.e(TAG, err.toString());
         }
-		Log.i(TAG, "I am HERE");
 		return status;
 	}
 }

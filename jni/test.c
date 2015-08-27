@@ -91,7 +91,6 @@ static void my_complete (Downloader *d, void *args, int status, size_t number_fi
 
 static void my_progress (Downloader *d, void *args, int64_t curr_size, int64_t total_size)
 {
-	LOGI("*** progress callback 6 ***");
 	if (total_size == 0) {
 		LOGI("%d", curr_size);
 	} else {
@@ -100,6 +99,12 @@ static void my_progress (Downloader *d, void *args, int64_t curr_size, int64_t t
 	}
 	return;
 }
+
+static const IDownloader_Cb my_callbacks =
+{
+		.complete = &my_complete,
+		.progress = &my_progress
+};
 
 static void task_destroy(Task *task)
 {
@@ -280,12 +285,6 @@ static int addTask (char *name, void *args)
 
 static int initDownloader ()
 {
-	IDownloader_Cb my_callbacks =
-	{
-		.complete = &my_complete,
-		.progress = &my_progress
-	};
-
 	g_ctx.d = NULL;
 	g_ctx.playlist = NULL;
 	g_ctx.sync.num = 0;

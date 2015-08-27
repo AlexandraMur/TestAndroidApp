@@ -78,12 +78,10 @@ static void data_cb (HttpClient *c, void *arg, const void *buffer, size_t size)
 
 static void progress_cb (HttpClient *c, void *arg, int64_t total_size, int64_t curr_size)
 {
-	LOGI("*** progress callback 4 ***");
 	Downloader *d = (Downloader*)arg;
 	assert(d);
 
 	if (d->cb->progress) {
-		LOGI("*** progress callback 5 ***");
 		d->cb->progress(d, d->arg, curr_size, total_size);
 	}
 }
@@ -265,6 +263,9 @@ void downloader_destroy(Downloader *d)
 	if (d->http_client) {
 		http_client_destroy(d->http_client);
 		d->http_client = NULL;
+	}
+	if(d->cb){
+		free(d->cb);
 	}
 	clear_jobs(d);
 	assert(d->current_job == NULL);
