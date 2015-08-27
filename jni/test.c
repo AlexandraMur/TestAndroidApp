@@ -39,7 +39,6 @@ typedef struct
 } Semaphore;
 
 static pthread_t g_thread;
-static pthread_t g_task_thread;
 
 struct NativeContext
 {
@@ -49,7 +48,7 @@ struct NativeContext
 
 	pthread_mutex_t mutex;
 	pthread_cond_t cv;
-	pthread_t thread;
+	pthread_t g_task_thread;;
 	bool thread_initialized;
 	bool mutex_initialized;
 	bool cv_initialized;
@@ -148,7 +147,21 @@ static void nativeDeinit()
 		pthread_cond_destroy(&g_ctx.sync.cv);
 	}
 
+	pthread_mutex_lock(&g_ctx.mutex);
+	g_ctx.shutdown = 1;
+	pthread_cond_broadcast(&g_ctx.cv);
+	pthread_mutex_unlock(&g_ctx.mutex);
+	pthread_join(g_ctx.g_task_thread, NULL);
 	clear_tasks();
+
+	if (g_ctx.cv_initialized) {
+		pthread_cond_destroy(&g_ctx.cv);
+	}
+
+	if (g_ctx.mutex_initialized) {
+		pthread_mutex_destroy(&g_ctx.mutex);
+	}
+
 	LOGI("finished\n");
 }
 
@@ -207,18 +220,22 @@ static void* taskFlow (void *args)
 	{
 		pthread_mutex_lock(&g_ctx.mutex);
 		while (TAILQ_EMPTY(&g_ctx.tasks) && !g_ctx.shutdown){
+			LOGI("waiting for task");
 			pthread_cond_wait(&g_ctx.cv, &g_ctx.mutex);
 		}
+		LOGI("taskFlow");
 		if (g_ctx.shutdown) {
 			pthread_mutex_unlock(&g_ctx.mutex);
 			break;
 		}
-
 		g_ctx.current_task = get_task();
-		int result = pthread_create(&g_thread, NULL, (void*)g_ctx.current_task->ref, (void*)args);
-		assert(result == 0);
 		pthread_mutex_unlock(&g_ctx.mutex);
+
+		g_ctx.current_task->ref((void*)args);
+		task_destroy(g_ctx.current_task);
+		g_ctx.current_task = NULL;
 	}
+	return NULL;
 }
 
 static void startDownloading(void *args)
@@ -262,9 +279,14 @@ fail:
 
 static void put_task (Task *task)
 {
-	g_ctx.count++;
+	pthread_mutex_lock(&g_ctx.mutex);
+	LOGI("Put task: %s\n", task->task_name);
 	assert(task);
 	TAILQ_INSERT_TAIL(&g_ctx.tasks, task, next);
+	g_ctx.count++;
+	pthread_cond_broadcast(&g_ctx.cv);
+	LOGI("put task");
+	pthread_mutex_unlock(&g_ctx.mutex);
 }
 
 static int addTask (char *name, void *args)
@@ -273,13 +295,7 @@ static int addTask (char *name, void *args)
 	if (!task) {
 		return CLIENT_ERROR;
 	}
-
-	pthread_mutex_lock(&g_ctx.mutex);
-	LOGI("Put task: %s\n", task->task_name);
 	put_task(task);
-	pthread_cond_broadcast(&g_ctx.cv);
-	pthread_mutex_unlock(&g_ctx.mutex);
-
 	return CLIENT_OK;
 }
 
@@ -291,7 +307,7 @@ static int initDownloader ()
 	g_ctx.sync.mutex_flag = 0;
 	g_ctx.sync.cv_flag = 0;
 	g_ctx.count = 0;
-
+	g_ctx.shutdown = 0;
 	g_ctx.thread_initialized = 0;
 	g_ctx.mutex_initialized = 0;
 	g_ctx.cv_initialized = 0;
@@ -340,7 +356,7 @@ static int nativeInit ()
 
 	TAILQ_INIT(&g_ctx.tasks);
 
-	if (pthread_create(&g_task_thread, NULL, (void*)taskFlow, (void*)g_ctx.d)) {
+	if (pthread_create(&g_ctx.g_task_thread, NULL, (void*)taskFlow, (void*)g_ctx.d)) {
 		goto exit;
 	}
 	return CLIENT_OK;
