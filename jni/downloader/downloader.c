@@ -264,9 +264,6 @@ void downloader_destroy(Downloader *d)
 		http_client_destroy(d->http_client);
 		d->http_client = NULL;
 	}
-	if(d->cb){
-		free(d->cb);
-	}
 	clear_jobs(d);
 	assert(d->current_job == NULL);
 	free(d);

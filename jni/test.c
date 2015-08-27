@@ -14,20 +14,29 @@
 #define LOGW(fmt, ...) __android_log_print(ANDROID_LOG_WARN,  LOG_TAG, "%s: " fmt, __func__, ## __VA_ARGS__)
 #define LOGE(fmt, ...) __android_log_print(ANDROID_LOG_ERROR, LOG_TAG, "%s: " fmt, __func__, ## __VA_ARGS__)
 
-typedef struct Task
-{
-	TAILQ_ENTRY(Task) next;
-    char *task_name;
-    void (*ref)();
-} Task;
+typedef enum {
+	TASK_DOWNLOAD_PL,
+    TASK_PARSE_PL,
+	TASK_STOP
+} TaskId;
 
-typedef TAILQ_HEAD(Tasks, Task) Tasks;
+typedef enum {
+	STATE_DOWNLOAD_PL,
+	STATE_DOWNLOAD_FILES,
+} StateId;
 
 typedef enum {
     CLIENT_OK,
 	CLIENT_ERROR
-	// ...
 } ClientStatus;
+
+typedef struct Task
+{
+	TAILQ_ENTRY(Task) next;
+	TaskId task;
+} Task;
+
+typedef TAILQ_HEAD(Tasks, Task) Tasks;
 
 typedef struct
 {
@@ -53,8 +62,6 @@ struct NativeContext
 	bool cv_initialized;
 	int shutdown;
 	Tasks tasks;
-	Task *current_task;
-	int count;
 } g_ctx;
 
 static void semaphore_wait (Semaphore *sync)
@@ -104,24 +111,10 @@ static const IDownloader_Cb my_callbacks =
 		.progress = &my_progress
 };
 
-static void task_destroy(Task *task)
-{
-	if (!task) {
-		return;
-	}
-	if (task->task_name) {
-		free(task->task_name);
-		task->task_name = NULL;
-	}
-	free(task);
-}
-
 static Task* get_task ()
 {
-	assert(g_ctx.count);
 	Task *task = TAILQ_FIRST(&g_ctx.tasks);
 	TAILQ_REMOVE(&g_ctx.tasks, task, next);
-	g_ctx.count--;
 	return task;
 }
 
@@ -129,9 +122,8 @@ static void clear_tasks ()
 {
 	while (TAILQ_FIRST(&g_ctx.tasks)) {
 		Task *task = get_task();
-		task_destroy(task);
+		free(task);
 	}
-	assert(g_ctx.count == 0);
 }
 
 static void nativeDeinit()
@@ -165,7 +157,7 @@ static void nativeDeinit()
 	LOGI("finished\n");
 }
 
-static void* downloadFlow (void* arg_)
+static void* download (void* arg_)
 {
 	long arg = (long) arg_;
 	//const char *url = "http://public.tv/api/?s=9c1997663576a8b11d1c4f8becd57e52&c=playlist_full&date=2015-07-06";
@@ -210,8 +202,19 @@ static void* downloadFlow (void* arg_)
 		g_ctx.playlist->items[i].name = new_name;
 		downloader_add(g_ctx.d, g_ctx.playlist->items[i].uri, g_ctx.playlist->items[i].name);
 	}
-	semaphore_wait(&g_ctx.sync);
 	return NULL;
+}
+
+static void startDownloading(void *args)
+{
+	LOGI("StartDownloading thread");
+	download((void*)args);
+}
+
+static void stopDownloading()
+{
+	LOGI("StopDownloading");
+	downloader_stop(g_ctx.d);
 }
 
 static void* taskFlow (void *args)
@@ -226,73 +229,39 @@ static void* taskFlow (void *args)
 			pthread_mutex_unlock(&g_ctx.mutex);
 			break;
 		}
-		g_ctx.current_task = get_task();
+		Task *current_task = get_task();
 		pthread_mutex_unlock(&g_ctx.mutex);
 
-		g_ctx.current_task->ref((void*)args);
-		task_destroy(g_ctx.current_task);
-		g_ctx.current_task = NULL;
+		switch(current_task->task){
+			case TASK_DOWNLOAD_PL:
+				startDownloading(args);
+				break;
+			case TASK_PARSE_PL:
+				startDownloading(args);
+				break;
+			case TASK_STOP:
+				stopDownloading();
+				break;
+		}
 	}
-	return NULL;
-}
-
-static void startDownloading(void *args)
-{
-	LOGI("StartDownloading thread");
-	int result = pthread_create(&g_ctx.download_thread, NULL, (void*)downloadFlow, (void*)args);
-	assert(result == 0);
-}
-
-static void stopDownloading()
-{
-	LOGI("StopDownloading thread");
-	downloader_stop(g_ctx.d);
-}
-
-static Task* task_create (const char *file)
-{
-	Task *task = calloc(1, sizeof(*task));
-	if (!task) {
-		goto fail;
-	}
-
-	task->task_name = strdup(file);
-	if (!task->task_name) {
-		goto fail;
-	}
-
-	if (!strcmp(task->task_name, "startDownloading")){
-		task->ref = &startDownloading;
-	}
-
-	if (!strcmp(task->task_name, "stopDownloading")){
-		task->ref = &stopDownloading;
-	}
-
-	return task;
-fail:
-	task_destroy(task);
 	return NULL;
 }
 
 static void put_task (Task *task)
 {
 	pthread_mutex_lock(&g_ctx.mutex);
-	LOGI("Put task: %s\n", task->task_name);
+	LOGI("Put task: %d\n", task->task);
 	assert(task);
 	TAILQ_INSERT_TAIL(&g_ctx.tasks, task, next);
-	g_ctx.count++;
 	pthread_cond_broadcast(&g_ctx.cv);
 	LOGI("put task");
 	pthread_mutex_unlock(&g_ctx.mutex);
 }
 
-static int addTask (char *name, void *args)
+static int addTask (TaskId taskId, void *args)
 {
-	Task *task = task_create(name);
-	if (!task) {
-		return CLIENT_ERROR;
-	}
+	Task *task = calloc(1,sizeof(Task));
+	task->task = taskId;
 	put_task(task);
 	return CLIENT_OK;
 }
@@ -304,7 +273,6 @@ static int initDownloader ()
 	g_ctx.sync.num = 0;
 	g_ctx.sync.mutex_flag = 0;
 	g_ctx.sync.cv_flag = 0;
-	g_ctx.count = 0;
 	g_ctx.shutdown = 0;
 	g_ctx.thread_initialized = 0;
 	g_ctx.mutex_initialized = 0;
@@ -370,12 +338,12 @@ exit:
 
 static void nativeStartDownloading (jlong args)
 {
-	addTask("startDownloading", NULL);
+	addTask(TASK_PARSE_PL, NULL);
 }
 
 static void nativeStopDownloading ()
 {
-	addTask("stopDownloading", NULL);
+	addTask(TASK_STOP, NULL);
 }
 
 static JNINativeMethod methodTable[] =
