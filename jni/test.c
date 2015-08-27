@@ -38,8 +38,6 @@ typedef struct
 	int cv_flag;
 } Semaphore;
 
-static pthread_t g_thread;
-
 struct NativeContext
 {
 	Downloader *d;
@@ -48,7 +46,8 @@ struct NativeContext
 
 	pthread_mutex_t mutex;
 	pthread_cond_t cv;
-	pthread_t g_task_thread;;
+	pthread_t task_thread;
+	pthread_t download_thread;
 	bool thread_initialized;
 	bool mutex_initialized;
 	bool cv_initialized;
@@ -151,7 +150,8 @@ static void nativeDeinit()
 	g_ctx.shutdown = 1;
 	pthread_cond_broadcast(&g_ctx.cv);
 	pthread_mutex_unlock(&g_ctx.mutex);
-	pthread_join(g_ctx.g_task_thread, NULL);
+	pthread_join(g_ctx.task_thread, NULL);
+	pthread_join(g_ctx.download_thread, NULL);
 	clear_tasks();
 
 	if (g_ctx.cv_initialized) {
@@ -194,7 +194,7 @@ static void* downloadFlow (void* arg_)
 	if (!parse_res) {
 		LOGE("Error parse\n");
 	}
-	for (int i = 0; i < g_ctx.playlist->items_count; i++) {
+	for (int i = 0; i < g_ctx.playlist->items_count && !g_ctx.shutdown; i++) {
 		semaphore_inc(&g_ctx.sync);
 		char *path = "/sdcard/";
 		size_t length = strlen(g_ctx.playlist->items[i].name) + strlen(path);
@@ -220,10 +220,8 @@ static void* taskFlow (void *args)
 	{
 		pthread_mutex_lock(&g_ctx.mutex);
 		while (TAILQ_EMPTY(&g_ctx.tasks) && !g_ctx.shutdown){
-			LOGI("waiting for task");
 			pthread_cond_wait(&g_ctx.cv, &g_ctx.mutex);
 		}
-		LOGI("taskFlow");
 		if (g_ctx.shutdown) {
 			pthread_mutex_unlock(&g_ctx.mutex);
 			break;
@@ -241,7 +239,7 @@ static void* taskFlow (void *args)
 static void startDownloading(void *args)
 {
 	LOGI("StartDownloading thread");
-	int result = pthread_create(&g_thread, NULL, (void*)downloadFlow, (void*)args);
+	int result = pthread_create(&g_ctx.download_thread, NULL, (void*)downloadFlow, (void*)args);
 	assert(result == 0);
 }
 
@@ -356,7 +354,7 @@ static int nativeInit ()
 
 	TAILQ_INIT(&g_ctx.tasks);
 
-	if (pthread_create(&g_ctx.g_task_thread, NULL, (void*)taskFlow, (void*)g_ctx.d)) {
+	if (pthread_create(&g_ctx.task_thread, NULL, (void*)taskFlow, (void*)g_ctx.d)) {
 		goto exit;
 	}
 	return CLIENT_OK;
