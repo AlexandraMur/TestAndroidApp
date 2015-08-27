@@ -18,7 +18,7 @@ typedef struct Task
 {
 	TAILQ_ENTRY(Task) next;
     char *task_name;
-    char *ref;
+    void (*ref)();
 } Task;
 
 typedef TAILQ_HEAD(Tasks, Task) Tasks;
@@ -57,10 +57,6 @@ struct NativeContext
 	Tasks tasks;
 	Task *current_task;
 	int count;
-
-	void (*start_ref)();
-	void (*stop_ref)();
-
 } g_ctx;
 
 static void semaphore_wait (Semaphore *sync)
@@ -95,6 +91,7 @@ static void my_complete (Downloader *d, void *args, int status, size_t number_fi
 
 static void my_progress (Downloader *d, void *args, int64_t curr_size, int64_t total_size)
 {
+	LOGI("*** progress callback 6 ***");
 	if (total_size == 0) {
 		LOGI("%d", curr_size);
 	} else {
@@ -125,7 +122,7 @@ static Task* get_task ()
 	return task;
 }
 
-static void clear_jobs ()
+static void clear_tasks ()
 {
 	while (TAILQ_FIRST(&g_ctx.tasks)) {
 		Task *task = get_task();
@@ -146,7 +143,7 @@ static void nativeDeinit()
 		pthread_cond_destroy(&g_ctx.sync.cv);
 	}
 
-	clear_jobs();
+	clear_tasks();
 	LOGI("finished\n");
 }
 
@@ -213,23 +210,23 @@ static void* taskFlow (void *args)
 		}
 
 		g_ctx.current_task = get_task();
-		int result = pthread_create(&g_thread, NULL, g_ctx.current_task->ref, (void*)args);
+		int result = pthread_create(&g_thread, NULL, (void*)g_ctx.current_task->ref, (void*)args);
 		assert(result == 0);
 		pthread_mutex_unlock(&g_ctx.mutex);
 	}
 }
 
-static void startDownloading()
+static void startDownloading(void *args)
 {
 	LOGI("StartDownloading thread");
-	//int result = pthread_create(&g_thread, NULL, (void*)downloadFlow, (void*)args);
-	//assert(result == 0);
+	int result = pthread_create(&g_thread, NULL, (void*)downloadFlow, (void*)args);
+	assert(result == 0);
 }
 
 static void stopDownloading()
 {
 	LOGI("StopDownloading thread");
-	//downloader_stop(g_ctx.d);
+	downloader_stop(g_ctx.d);
 }
 
 static Task* task_create (const char *file)
@@ -244,11 +241,11 @@ static Task* task_create (const char *file)
 		goto fail;
 	}
 
-	if (task->task_name == "startDownloading"){
+	if (!strcmp(task->task_name, "startDownloading")){
 		task->ref = &startDownloading;
 	}
 
-	if (task->task_name == "stopDownloading"){
+	if (!strcmp(task->task_name, "stopDownloading")){
 		task->ref = &stopDownloading;
 	}
 

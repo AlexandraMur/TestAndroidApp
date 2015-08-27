@@ -61,12 +61,15 @@ bool isShutdown (JNIEnv *env, jobject obj, jlong args)
 
 static void writeCallback (JNIEnv *env, jobject obj, jbyteArray byte_array, jint size, jlong args)
 {
+	LOGI("*** write callback ***");
 	HttpClient *client = (HttpClient*)((intptr_t)args);
 	assert(client);
 
 	jbyte* buffer_ptr = (*env)->GetByteArrayElements(env, byte_array, NULL);
 
+	LOGI("*** write callback 2 ***");
 	if (client->cb->data) {
+		LOGI("*** write callback 3 ***");
 		client->cb->data(client, (void*)client->arg, buffer_ptr, size);
 	}
 
@@ -75,10 +78,12 @@ static void writeCallback (JNIEnv *env, jobject obj, jbyteArray byte_array, jint
 
 static void progressCallback (JNIEnv *env, jobject obj, jint total_size, jint curr_size, jlong args)
 {
+	LOGI("*** progress callback ***");
 	HttpClient *client = (HttpClient*)((intptr_t)args);
 	assert(client);
-
+	LOGI("*** progress callback 2 ***");
 	if (client->cb->progress) {
+		LOGI("*** progress callback 3***");
 		client->cb->progress(client, client->arg, total_size, curr_size);
 	}
 }

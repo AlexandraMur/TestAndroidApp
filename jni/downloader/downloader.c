@@ -78,10 +78,12 @@ static void data_cb (HttpClient *c, void *arg, const void *buffer, size_t size)
 
 static void progress_cb (HttpClient *c, void *arg, int64_t total_size, int64_t curr_size)
 {
+	LOGI("*** progress callback 4 ***");
 	Downloader *d = (Downloader*)arg;
 	assert(d);
 
 	if (d->cb->progress) {
+		LOGI("*** progress callback 5 ***");
 		d->cb->progress(d, d->arg, curr_size, total_size);
 	}
 }
@@ -204,7 +206,6 @@ static void *worker_thread (void *arg)
 
 Downloader *downloader_create(const IDownloader_Cb *cb, void *arg)
 {
-	LOGI("ENTRED downloader_create");
 	if (!cb) {
 		return NULL;
 	}
@@ -236,7 +237,6 @@ Downloader *downloader_create(const IDownloader_Cb *cb, void *arg)
     	goto fail;
     }
 	d->thread_initialized = true;
-	LOGI("DOWNLOADER CREATED");
 	return d;
 fail:
 	downloader_destroy(d);

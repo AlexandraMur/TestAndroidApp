@@ -25,14 +25,14 @@ public class MyDownloader {
 		try {
 			URL url = new URL(sUrl);
 			HttpURLConnection connection = (HttpURLConnection)url.openConnection();
-			Log.e(TAG, "****************");
+			
 			int contentLength = 0;
 			String values = connection.getHeaderField("Content-Length");
 			
 			if (values != null && !values.isEmpty()) {
 				contentLength = Integer.parseInt(values);
 			}			
-			Log.e(TAG, "****************");
+			
 			int counter = 0;
 			int timeout = 1000 * 2;
 			connection.setConnectTimeout(timeout);
@@ -41,7 +41,6 @@ public class MyDownloader {
 			
 			do {
 				try {
-					Log.e(TAG, "****************");
 					connection.connect();
 				} catch(IOException e) {
 					connection.disconnect();
