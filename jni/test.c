@@ -66,19 +66,22 @@ static void put_task (Task *task)
 	pthread_mutex_unlock(&g_ctx.mutex);
 }
 
+static void add_task (TaskId taskId, void *args)
+{
+	Task *task = calloc(1,sizeof(Task));
+	task->task = taskId;
+	put_task(task);
+}
+
 static void my_complete (Downloader *d, void *args, int status, size_t number_files_in_stack)
 {
 	switch (g_ctx.stateId){
 		case STATE_DOWNLOAD_PL:{
 			if (status == -1){
-				Task *task = calloc(1,sizeof(Task));
-				task->task = TASK_STOP;
-				put_task(task);
+				add_task(TASK_STOP, args);
 				break;
 			}
-			Task *task = calloc(1,sizeof(Task));
-			task->task = TASK_PARSE_PL;
-			put_task(task);
+			add_task(TASK_PARSE_PL, args);
 			break;
 		}
 	}
@@ -166,35 +169,58 @@ static void stop_downloading ()
 	downloader_stop(g_ctx.d);
 }
 
-static void parse_playlist_and_download_files (void *args)
+static int parse_playlist (void *args)
 {
-	if (g_ctx.stateId != STATE_DOWNLOAD_PL){
-		return;
-	}
-
-	g_ctx.stateId = STATE_DOWNLOAD_PL;
 	g_ctx.playlist = playlist_create();
 	if (!g_ctx.playlist) {
-		nativeDeinit();
+		return CLIENT_ERROR;
 	}
+
 	const char *name = "/sdcard/file.json";
 	int parse_res = playlist_parse(g_ctx.playlist, name);
 	if (!parse_res) {
 		LOGE("Error parse\n");
+		return CLIENT_ERROR;
 	}
+
+	return CLIENT_OK;
+}
+
+static int download_files (void *args)
+{
 	for (int i = 0; i < g_ctx.playlist->items_count && !g_ctx.shutdown; i++) {
 		char *path = "/sdcard/";
 		size_t length = strlen(g_ctx.playlist->items[i].name) + strlen(path);
 		char *new_name = malloc(length + 1);
 
 		if (!new_name){
-			nativeDeinit();
+			return CLIENT_ERROR;
 		}
 
 		snprintf(new_name, length + 1, "%s%s", path, g_ctx.playlist->items[i].name);
 		free(g_ctx.playlist->items[i].name);
 		g_ctx.playlist->items[i].name = new_name;
 		downloader_add(g_ctx.d, g_ctx.playlist->items[i].uri, g_ctx.playlist->items[i].name);
+	}
+	return CLIENT_OK;
+}
+
+void task_download(void *args){
+	if (g_ctx.stateId != STATE_DOWNLOAD_PL){
+		return;
+	}
+	g_ctx.stateId = STATE_DOWNLOAD_PL;
+
+	int res = parse_playlist(args);
+	if(res == CLIENT_ERROR){
+		nativeDeinit();
+		return;
+	}
+
+	res = download_files(args);
+	if(res == CLIENT_ERROR){
+		nativeDeinit();
+		return;
 	}
 }
 
@@ -221,7 +247,7 @@ static void* task_flow (void *args)
 			}
 			case TASK_PARSE_PL:{
 				LOGE("TASK_PARSE_PL");
-				parse_playlist_and_download_files(args);
+				task_download(args);
 				break;
 			}
 			case TASK_STOP:{
@@ -230,19 +256,12 @@ static void* task_flow (void *args)
 				break;
 			}
 		}
+		free(current_task);
 	}
 	return NULL;
 }
 
-static int add_task (TaskId taskId, void *args)
-{
-	Task *task = calloc(1,sizeof(Task));
-	task->task = taskId;
-	put_task(task);
-	return CLIENT_OK;
-}
-
-static int initDownloader ()
+static int nativeInit ()
 {
 	g_ctx.d = NULL;
 	g_ctx.playlist = NULL;
@@ -256,18 +275,6 @@ static int initDownloader ()
 
 	downloader_set_timeout_connection(g_ctx.d, timeout);
 	downloader_set_timeout_recieve(g_ctx.d, timeout);
-
-	return CLIENT_OK;
-exit:
-	nativeDeinit();
-	return CLIENT_ERROR;
-}
-
-static int nativeInit ()
-{
-	if (initDownloader()) {
-		return CLIENT_ERROR;
-	}
 
 	int task_mutex_error = pthread_mutex_init(&g_ctx.mutex, NULL);
 	int task_cv_error = pthread_cond_init(&g_ctx.cv, NULL);
