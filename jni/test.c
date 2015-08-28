@@ -140,12 +140,11 @@ static void nativeDeinit()
 	LOGI("finished\n");
 }
 
-static void downloadPlaylist (void* arg_)
+static void download_playlist (void* arg_)
 {
 	if (g_ctx.stateId != STATE_AVAILABLE){
 		return;
 	}
-
 	g_ctx.stateId = STATE_DOWNLOAD_PL;
 	long arg = (long) arg_;
 	//const char *url = "http://public.tv/api/?s=9c1997663576a8b11d1c4f8becd57e52&c=playlist_full&date=2015-07-06";
@@ -159,7 +158,7 @@ static void downloadPlaylist (void* arg_)
 	LOGI("Playlist downloaded\n");
 }
 
-static void stopDownloading ()
+static void stop_downloading ()
 {
 	if (g_ctx.stateId == STATE_AVAILABLE) {
 		return;
@@ -167,7 +166,7 @@ static void stopDownloading ()
 	downloader_stop(g_ctx.d);
 }
 
-static void parsePlaylistAndDownloadFiles (void *args)
+static void parse_playlist_and_download_files (void *args)
 {
 	if (g_ctx.stateId != STATE_DOWNLOAD_PL){
 		return;
@@ -199,7 +198,7 @@ static void parsePlaylistAndDownloadFiles (void *args)
 	}
 }
 
-static void* taskFlow (void *args)
+static void* task_flow (void *args)
 {
 	while(1)
 	{
@@ -217,17 +216,17 @@ static void* taskFlow (void *args)
 		switch(current_task->task){
 			case TASK_DOWNLOAD_PL:{
 				LOGE("TASK DOWNLOAD PL");
-				downloadPlaylist(args);
+				download_playlist(args);
 				break;
 			}
 			case TASK_PARSE_PL:{
 				LOGE("TASK_PARSE_PL");
-				parsePlaylistAndDownloadFiles(args);
+				parse_playlist_and_download_files(args);
 				break;
 			}
 			case TASK_STOP:{
 				LOGE("TASK STOP");
-				stopDownloading();
+				stop_downloading();
 				break;
 			}
 		}
@@ -235,7 +234,7 @@ static void* taskFlow (void *args)
 	return NULL;
 }
 
-static int addTask (TaskId taskId, void *args)
+static int add_task (TaskId taskId, void *args)
 {
 	Task *task = calloc(1,sizeof(Task));
 	task->task = taskId;
@@ -282,7 +281,7 @@ static int nativeInit ()
 
 	TAILQ_INIT(&g_ctx.tasks);
 
-	if (pthread_create(&g_ctx.task_thread, NULL, (void*)taskFlow, (void*)g_ctx.d)) {
+	if (pthread_create(&g_ctx.task_thread, NULL, (void*)task_flow, (void*)g_ctx.d)) {
 		goto exit;
 	}
 	return CLIENT_OK;
@@ -298,12 +297,12 @@ exit:
 
 static void nativeStartDownloading (jlong args)
 {
-	addTask(TASK_DOWNLOAD_PL, NULL);
+	add_task(TASK_DOWNLOAD_PL, NULL);
 }
 
 static void nativeStopDownloading ()
 {
-	addTask(TASK_STOP, NULL);
+	add_task(TASK_STOP, NULL);
 }
 
 static JNINativeMethod methodTable[] =
