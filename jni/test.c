@@ -39,19 +39,9 @@ typedef struct Task
 
 typedef TAILQ_HEAD(Tasks, Task) Tasks;
 
-typedef struct
-{
-	int num;
-	pthread_mutex_t mutex;
-	pthread_cond_t cv;
-	int mutex_flag;
-	int cv_flag;
-} Semaphore;
-
 struct NativeContext
 {
 	Downloader *d;
-	Semaphore sync;
 	Playlist *playlist;
 
 	pthread_mutex_t mutex;
@@ -64,30 +54,6 @@ struct NativeContext
 	Tasks tasks;
 	StateId stateId;
 } g_ctx;
-
-static void semaphore_wait (Semaphore *sync)
-{
-	pthread_mutex_lock(&sync->mutex);
-	while(sync->num){
-		pthread_cond_wait(&sync->cv, &sync->mutex);
-	}
-	pthread_mutex_unlock(&sync->mutex);
-}
-
-static void semaphore_inc (Semaphore *sync)
-{
-	pthread_mutex_lock(&sync->mutex);
-	sync->num++;
-	pthread_mutex_unlock(&sync->mutex);
-}
-
-static void semaphore_dec (Semaphore *sync)
-{
-	pthread_mutex_lock(&sync->mutex);
-	sync->num--;
-	pthread_cond_signal(&sync->cv);
-	pthread_mutex_unlock(&sync->mutex);
-}
 
 static void put_task (Task *task)
 {
@@ -162,13 +128,6 @@ static void nativeDeinit()
 	playlist_destroy(g_ctx.playlist);
 	downloader_destroy(g_ctx.d);
 
-	if (g_ctx.sync.mutex_flag) {
-		pthread_mutex_destroy(&g_ctx.sync.mutex);
-	}
-	if (g_ctx.sync.cv_flag) {
-		pthread_cond_destroy(&g_ctx.sync.cv);
-	}
-
 	if (g_ctx.cv_initialized) {
 		pthread_cond_destroy(&g_ctx.cv);
 	}
@@ -182,43 +141,50 @@ static void nativeDeinit()
 
 static void downloadPlaylist (void* arg_)
 {
+	if (g_ctx.stateId != STATE_AVAILABLE){
+		return;
+	}
+	g_ctx.stateId = STATE_DOWNLOAD_PL;
 	long arg = (long) arg_;
 	//const char *url = "http://public.tv/api/?s=9c1997663576a8b11d1c4f8becd57e52&c=playlist_full&date=2015-07-06";
 	const char *url = "http://192.168.4.102:80/test2.txt";
 	const char *name = "/sdcard/file.json";
 
-	pthread_mutex_lock(&g_ctx.sync.mutex);
-	g_ctx.sync.num++;
-	pthread_mutex_unlock(&g_ctx.sync.mutex);
-
 	int res = downloader_add(g_ctx.d, url, name);
 	if (res) {
 		nativeDeinit();
 	}
-	semaphore_wait(&g_ctx.sync);
 	LOGI("Playlist downloaded\n");
 }
 
 static void stopDownloading ()
 {
-	LOGI("StopDownloading");
+	if ((g_ctx.stateId != STATE_DOWNLOAD_PL) && (g_ctx.stateId != STATE_DOWNLOAD_FILES)){
+		return;
+	}
+
+	g_ctx.stateId = STATE_AVAILABLE;
 	downloader_stop(g_ctx.d);
 }
 
 static void parsePlaylistAndDownloadFiles (void *args)
 {
+	if (g_ctx.stateId != STATE_DOWNLOAD_PL){
+		return;
+	}
+
+	g_ctx.stateId = STATE_DOWNLOAD_FILES;
 	g_ctx.playlist = playlist_create();
 	if (!g_ctx.playlist) {
 		nativeDeinit();
 	}
-
+	g_ctx.stateId = STATE_DOWNLOAD_PL;
 	const char *name = "/sdcard/file.json";
 	int parse_res = playlist_parse(g_ctx.playlist, name);
 	if (!parse_res) {
 		LOGE("Error parse\n");
 	}
 	for (int i = 0; i < g_ctx.playlist->items_count && !g_ctx.shutdown; i++) {
-		semaphore_inc(&g_ctx.sync);
 		char *path = "/sdcard/";
 		size_t length = strlen(g_ctx.playlist->items[i].name) + strlen(path);
 		char *new_name = malloc(length + 1);
@@ -250,32 +216,21 @@ static void* taskFlow (void *args)
 		pthread_mutex_unlock(&g_ctx.mutex);
 
 		switch(current_task->task){
-			case TASK_DOWNLOAD_PL:
-				switch(g_ctx.stateId){
-					case STATE_AVAILABLE:
-						g_ctx.stateId = STATE_DOWNLOAD_PL;
-						downloadPlaylist(args);
-						break;
-				}
+			case TASK_DOWNLOAD_PL:{
+				LOGE("TASK DOWNLOAD PL");
+				downloadPlaylist(args);
 				break;
-			case TASK_PARSE_PL:
-				switch(g_ctx.stateId){
-					case STATE_DOWNLOAD_PL:
-						g_ctx.stateId = STATE_DOWNLOAD_FILES;
-						parsePlaylistAndDownloadFiles(args);
-						break;
-				}
+			}
+			case TASK_PARSE_PL:{
+				LOGE("TASK_PARSE_PL");
+				parsePlaylistAndDownloadFiles(args);
 				break;
-			case TASK_STOP:
-				switch(g_ctx.stateId){
-					case STATE_DOWNLOAD_PL:
-						stopDownloading();
-						break;
-					case STATE_DOWNLOAD_FILES:
-						stopDownloading();
-						break;
-				}
+			}
+			case TASK_STOP:{
+				LOGE("TASK STOP");
+				stopDownloading();
 				break;
+			}
 		}
 	}
 	return NULL;
@@ -293,29 +248,12 @@ static int initDownloader ()
 {
 	g_ctx.d = NULL;
 	g_ctx.playlist = NULL;
-	g_ctx.sync.num = 0;
-	g_ctx.sync.mutex_flag = 0;
-	g_ctx.sync.cv_flag = 0;
 	g_ctx.shutdown = 0;
 	g_ctx.thread_initialized = 0;
 	g_ctx.mutex_initialized = 0;
 	g_ctx.cv_initialized = 0;
-
-	int sync_mutex_error = pthread_mutex_init(&g_ctx.sync.mutex, NULL);
-	int sync_cv_error = pthread_cond_init(&g_ctx.sync.cv, NULL);
-
-	if (sync_mutex_error || sync_cv_error){
-		goto exit;
-	}
-
-	g_ctx.sync.mutex_flag = 1;
-	g_ctx.sync.cv_flag = 1;
-
-	g_ctx.d = downloader_create(&my_callbacks, &g_ctx.sync);
-	if (!g_ctx.d) {
-		goto exit;
-	}
-
+	g_ctx.stateId = STATE_AVAILABLE;
+	g_ctx.d = downloader_create(&my_callbacks, NULL);
 	int timeout = 1000 * 2;
 
 	downloader_set_timeout_connection(g_ctx.d, timeout);
@@ -361,7 +299,7 @@ exit:
 
 static void nativeStartDownloading (jlong args)
 {
-	addTask(TASK_PARSE_PL, NULL);
+	addTask(TASK_DOWNLOAD_PL, NULL);
 }
 
 static void nativeStopDownloading ()
