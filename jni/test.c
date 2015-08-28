@@ -75,6 +75,13 @@ static Task* create_task(TaskId taskId, void *args)
 	return task;
 }
 
+static Task* get_task ()
+{
+	Task *task = TAILQ_FIRST(&g_ctx.tasks);
+	TAILQ_REMOVE(&g_ctx.tasks, task, next);
+	return task;
+}
+
 static void put_task (Task *task)
 {
 	pthread_mutex_lock(&g_ctx.mutex);
@@ -86,13 +93,12 @@ static void put_task (Task *task)
 	pthread_mutex_unlock(&g_ctx.mutex);
 }
 
-static void add_task (TaskId taskId, void *args)
+static void clear_tasks ()
 {
-	Task *task = create_task(taskId, args);
-	if (!task){
-		return;
+	while (TAILQ_FIRST(&g_ctx.tasks)) {
+		Task *task = get_task();
+		destroy_task(task);
 	}
-	put_task(task);
 }
 
 static void my_complete (Downloader *d, void *args, int status, size_t number_files_in_stack)
@@ -100,10 +106,20 @@ static void my_complete (Downloader *d, void *args, int status, size_t number_fi
 	switch (g_ctx.stateId){
 		case STATE_DOWNLOAD_PL:{
 			if (status == -1){
-				add_task(TASK_STOP, args);
+				Task *task = create_task(TASK_STOP, (void*)args);
+				if (!task){
+					task->task = TASK_STOP;
+					return;
+				}
+				put_task(task);
 				break;
 			}
-			add_task(TASK_PARSE_PL, args);
+			Task *task = create_task(TASK_PARSE_PL, (void*)args);
+			if (!task){
+				task->task = TASK_PARSE_PL;
+				return;
+			}
+			put_task(task);
 			break;
 		}
 	}
@@ -126,44 +142,6 @@ static const IDownloader_Cb my_callbacks =
 		.complete = &my_complete,
 		.progress = &my_progress
 };
-
-static Task* get_task ()
-{
-	Task *task = TAILQ_FIRST(&g_ctx.tasks);
-	TAILQ_REMOVE(&g_ctx.tasks, task, next);
-	return task;
-}
-
-static void clear_tasks ()
-{
-	while (TAILQ_FIRST(&g_ctx.tasks)) {
-		Task *task = get_task();
-		destroy_task(task);
-	}
-}
-
-static void nativeDeinit()
-{
-	pthread_mutex_lock(&g_ctx.mutex);
-	g_ctx.shutdown = 1;
-	pthread_cond_broadcast(&g_ctx.cv);
-	pthread_mutex_unlock(&g_ctx.mutex);
-	pthread_join(g_ctx.task_thread, NULL);
-	clear_tasks();
-
-	playlist_destroy(g_ctx.playlist);
-	downloader_destroy(g_ctx.d);
-
-	if (g_ctx.cv_initialized) {
-		pthread_cond_destroy(&g_ctx.cv);
-	}
-
-	if (g_ctx.mutex_initialized) {
-		pthread_mutex_destroy(&g_ctx.mutex);
-	}
-
-	LOGI("finished\n");
-}
 
 static void task_download_playlist (void* arg_)
 {
@@ -227,6 +205,29 @@ exit:
 	return CLIENT_ERROR;
 }
 
+static void nativeDeinit()
+{
+	pthread_mutex_lock(&g_ctx.mutex);
+	g_ctx.shutdown = 1;
+	pthread_cond_broadcast(&g_ctx.cv);
+	pthread_mutex_unlock(&g_ctx.mutex);
+	pthread_join(g_ctx.task_thread, NULL);
+	clear_tasks();
+
+	playlist_destroy(g_ctx.playlist);
+	downloader_destroy(g_ctx.d);
+
+	if (g_ctx.cv_initialized) {
+		pthread_cond_destroy(&g_ctx.cv);
+	}
+
+	if (g_ctx.mutex_initialized) {
+		pthread_mutex_destroy(&g_ctx.mutex);
+	}
+
+	LOGI("finished\n");
+}
+
 static void task_stop ()
 {
 	if (g_ctx.stateId == STATE_AVAILABLE) {
@@ -251,7 +252,6 @@ static int parse_playlist (void *args)
 		LOGE("Error parse\n");
 		return CLIENT_ERROR;
 	}
-
 	return CLIENT_OK;
 }
 
@@ -333,12 +333,22 @@ static void* task_flow (void *args)
 
 static void nativeStartDownloading (jlong args)
 {
-	add_task(TASK_DOWNLOAD_PL, NULL);
+	Task *task = create_task(TASK_DOWNLOAD_PL, (void*)args);
+	if (!task){
+		task->task = TASK_DOWNLOAD_PL;
+		return;
+	}
+	put_task(task);
 }
 
 static void nativeStopDownloading ()
 {
-	add_task(TASK_STOP, NULL);
+	Task *task = create_task(TASK_STOP, NULL);
+	if (!task){
+		task->task = TASK_STOP;
+		return;
+	}
+	put_task(task);
 }
 
 static JNINativeMethod methodTable[] =
