@@ -14,6 +14,12 @@
 #define LOGW(fmt, ...) __android_log_print(ANDROID_LOG_WARN,  LOG_TAG, "%s: " fmt, __func__, ## __VA_ARGS__)
 #define LOGE(fmt, ...) __android_log_print(ANDROID_LOG_ERROR, LOG_TAG, "%s: " fmt, __func__, ## __VA_ARGS__)
 
+
+static void task_download(void *args);
+static void *task_flow(void *args);
+static void nativeDeinit();
+static int nativeInit();
+
 typedef enum {
 	TASK_DOWNLOAD_PL,
     TASK_PARSE_PL,
@@ -55,6 +61,20 @@ struct NativeContext
 	StateId stateId;
 } g_ctx;
 
+
+static void destroy_task(Task *task)
+{
+	free(task);
+}
+static Task* create_task(TaskId taskId, void *args)
+{
+	Task *task = calloc(1,sizeof(Task));
+	if (!task){
+		task->task = taskId;
+	}
+	return task;
+}
+
 static void put_task (Task *task)
 {
 	pthread_mutex_lock(&g_ctx.mutex);
@@ -68,8 +88,10 @@ static void put_task (Task *task)
 
 static void add_task (TaskId taskId, void *args)
 {
-	Task *task = calloc(1,sizeof(Task));
-	task->task = taskId;
+	Task *task = create_task(taskId, args);
+	if (!task){
+		return;
+	}
 	put_task(task);
 }
 
@@ -116,7 +138,7 @@ static void clear_tasks ()
 {
 	while (TAILQ_FIRST(&g_ctx.tasks)) {
 		Task *task = get_task();
-		free(task);
+		destroy_task(task);
 	}
 }
 
@@ -161,12 +183,59 @@ static void download_playlist (void* arg_)
 	LOGI("Playlist downloaded\n");
 }
 
+static int nativeInit ()
+{
+	g_ctx.d = NULL;
+	g_ctx.playlist = NULL;
+	g_ctx.shutdown = 0;
+	g_ctx.thread_initialized = 0;
+	g_ctx.mutex_initialized = 0;
+	g_ctx.cv_initialized = 0;
+	g_ctx.stateId = STATE_AVAILABLE;
+	g_ctx.d = downloader_create(&my_callbacks, NULL);
+	if (!g_ctx.d){
+		return CLIENT_ERROR;
+	}
+	int timeout = 1000 * 2;
+
+	downloader_set_timeout_connection(g_ctx.d, timeout);
+	downloader_set_timeout_recieve(g_ctx.d, timeout);
+
+	int task_mutex_error = pthread_mutex_init(&g_ctx.mutex, NULL);
+	int task_cv_error = pthread_cond_init(&g_ctx.cv, NULL);
+
+	if (task_mutex_error || task_cv_error){
+		goto exit;
+	}
+
+	g_ctx.mutex_initialized = 1;
+	g_ctx.cv_initialized = 1;
+
+	TAILQ_INIT(&g_ctx.tasks);
+
+	if (pthread_create(&g_ctx.task_thread, NULL, (void*)task_flow, (void*)g_ctx.d)) {
+		goto exit;
+	}
+	return CLIENT_OK;
+exit:
+	if (g_ctx.mutex_initialized) {
+		pthread_mutex_destroy(&g_ctx.mutex);
+	}
+	if (g_ctx.cv_initialized) {
+		pthread_cond_destroy(&g_ctx.cv);
+	}
+	return CLIENT_ERROR;
+}
+
 static void stop_downloading ()
 {
 	if (g_ctx.stateId == STATE_AVAILABLE) {
 		return;
 	}
 	downloader_stop(g_ctx.d);
+	g_ctx.stateId = STATE_AVAILABLE;
+	nativeDeinit();
+	nativeInit();
 }
 
 static int parse_playlist (void *args)
@@ -205,7 +274,8 @@ static int download_files (void *args)
 	return CLIENT_OK;
 }
 
-void task_download(void *args){
+void task_download(void *args)
+{
 	if (g_ctx.stateId != STATE_DOWNLOAD_PL){
 		return;
 	}
@@ -256,50 +326,9 @@ static void* task_flow (void *args)
 				break;
 			}
 		}
-		free(current_task);
+		destroy_task(current_task);
 	}
 	return NULL;
-}
-
-static int nativeInit ()
-{
-	g_ctx.d = NULL;
-	g_ctx.playlist = NULL;
-	g_ctx.shutdown = 0;
-	g_ctx.thread_initialized = 0;
-	g_ctx.mutex_initialized = 0;
-	g_ctx.cv_initialized = 0;
-	g_ctx.stateId = STATE_AVAILABLE;
-	g_ctx.d = downloader_create(&my_callbacks, NULL);
-	int timeout = 1000 * 2;
-
-	downloader_set_timeout_connection(g_ctx.d, timeout);
-	downloader_set_timeout_recieve(g_ctx.d, timeout);
-
-	int task_mutex_error = pthread_mutex_init(&g_ctx.mutex, NULL);
-	int task_cv_error = pthread_cond_init(&g_ctx.cv, NULL);
-
-	if (task_mutex_error || task_cv_error){
-		goto exit;
-	}
-
-	g_ctx.mutex_initialized = 1;
-	g_ctx.cv_initialized = 1;
-
-	TAILQ_INIT(&g_ctx.tasks);
-
-	if (pthread_create(&g_ctx.task_thread, NULL, (void*)task_flow, (void*)g_ctx.d)) {
-		goto exit;
-	}
-	return CLIENT_OK;
-exit:
-	if (g_ctx.mutex_initialized) {
-		pthread_mutex_destroy(&g_ctx.mutex);
-	}
-	if (g_ctx.cv_initialized) {
-		pthread_cond_destroy(&g_ctx.cv);
-	}
-	return CLIENT_ERROR;
 }
 
 static void nativeStartDownloading (jlong args)
