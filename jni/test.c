@@ -165,7 +165,7 @@ static void nativeDeinit()
 	LOGI("finished\n");
 }
 
-static void download_playlist (void* arg_)
+static void task_download_playlist (void* arg_)
 {
 	if (g_ctx.stateId != STATE_AVAILABLE){
 		return;
@@ -227,7 +227,7 @@ exit:
 	return CLIENT_ERROR;
 }
 
-static void stop_downloading ()
+static void task_stop ()
 {
 	if (g_ctx.stateId == STATE_AVAILABLE) {
 		return;
@@ -312,7 +312,7 @@ static void* task_flow (void *args)
 		switch(current_task->task){
 			case TASK_DOWNLOAD_PL:{
 				LOGE("TASK DOWNLOAD PL");
-				download_playlist(args);
+				task_download_playlist(args);
 				break;
 			}
 			case TASK_PARSE_PL:{
@@ -322,7 +322,7 @@ static void* task_flow (void *args)
 			}
 			case TASK_STOP:{
 				LOGE("TASK STOP");
-				stop_downloading();
+				task_stop();
 				break;
 			}
 		}
