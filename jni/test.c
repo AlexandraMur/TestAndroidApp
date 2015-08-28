@@ -23,6 +23,7 @@ typedef enum {
 typedef enum {
 	STATE_DOWNLOAD_PL,
 	STATE_DOWNLOAD_FILES,
+	STATE_AVAILABLE
 } StateId;
 
 typedef enum {
@@ -61,6 +62,7 @@ struct NativeContext
 	bool cv_initialized;
 	int shutdown;
 	Tasks tasks;
+	StateId stateId;
 } g_ctx;
 
 static void semaphore_wait (Semaphore *sync)
@@ -87,10 +89,33 @@ static void semaphore_dec (Semaphore *sync)
 	pthread_mutex_unlock(&sync->mutex);
 }
 
+static void put_task (Task *task)
+{
+	pthread_mutex_lock(&g_ctx.mutex);
+	LOGI("Put task: %d\n", task->task);
+	assert(task);
+	TAILQ_INSERT_TAIL(&g_ctx.tasks, task, next);
+	pthread_cond_broadcast(&g_ctx.cv);
+	LOGI("put task");
+	pthread_mutex_unlock(&g_ctx.mutex);
+}
+
 static void my_complete (Downloader *d, void *args, int status, size_t number_files_in_stack)
 {
+	switch (g_ctx.stateId){
+		case STATE_DOWNLOAD_PL:
+			if (status == -1){
+				Task *task = calloc(1,sizeof(Task));
+				task->task = TASK_STOP;
+				put_task(task);
+				break;
+			}
+			Task *task = calloc(1,sizeof(Task));
+			task->task = TASK_PARSE_PL;
+			put_task(task);
+			break;
+	}
 	LOGI("Downloaded");
-	semaphore_dec((Semaphore*)args);
 }
 
 static void my_progress (Downloader *d, void *args, int64_t curr_size, int64_t total_size)
@@ -155,7 +180,7 @@ static void nativeDeinit()
 	LOGI("finished\n");
 }
 
-static void* download (void* arg_)
+static void downloadPlaylist (void* arg_)
 {
 	long arg = (long) arg_;
 	//const char *url = "http://public.tv/api/?s=9c1997663576a8b11d1c4f8becd57e52&c=playlist_full&date=2015-07-06";
@@ -169,17 +194,25 @@ static void* download (void* arg_)
 	int res = downloader_add(g_ctx.d, url, name);
 	if (res) {
 		nativeDeinit();
-		return NULL;
 	}
 	semaphore_wait(&g_ctx.sync);
 	LOGI("Playlist downloaded\n");
+}
 
+static void stopDownloading ()
+{
+	LOGI("StopDownloading");
+	downloader_stop(g_ctx.d);
+}
+
+static void parsePlaylistAndDownloadFiles (void *args)
+{
 	g_ctx.playlist = playlist_create();
 	if (!g_ctx.playlist) {
 		nativeDeinit();
-		return NULL;
 	}
 
+	const char *name = "/sdcard/file.json";
 	int parse_res = playlist_parse(g_ctx.playlist, name);
 	if (!parse_res) {
 		LOGE("Error parse\n");
@@ -192,7 +225,6 @@ static void* download (void* arg_)
 
 		if (!new_name){
 			nativeDeinit();
-			return NULL;
 		}
 
 		snprintf(new_name, length + 1, "%s%s", path, g_ctx.playlist->items[i].name);
@@ -200,19 +232,6 @@ static void* download (void* arg_)
 		g_ctx.playlist->items[i].name = new_name;
 		downloader_add(g_ctx.d, g_ctx.playlist->items[i].uri, g_ctx.playlist->items[i].name);
 	}
-	return NULL;
-}
-
-static void startDownloading(void *args)
-{
-	LOGI("StartDownloading thread");
-	download((void*)args);
-}
-
-static void stopDownloading()
-{
-	LOGI("StopDownloading");
-	downloader_stop(g_ctx.d);
 }
 
 static void* taskFlow (void *args)
@@ -232,28 +251,34 @@ static void* taskFlow (void *args)
 
 		switch(current_task->task){
 			case TASK_DOWNLOAD_PL:
-				startDownloading(args);
+				switch(g_ctx.stateId){
+					case STATE_AVAILABLE:
+						g_ctx.stateId = STATE_DOWNLOAD_PL;
+						downloadPlaylist(args);
+						break;
+				}
 				break;
 			case TASK_PARSE_PL:
-				startDownloading(args);
+				switch(g_ctx.stateId){
+					case STATE_DOWNLOAD_PL:
+						g_ctx.stateId = STATE_DOWNLOAD_FILES;
+						parsePlaylistAndDownloadFiles(args);
+						break;
+				}
 				break;
 			case TASK_STOP:
-				stopDownloading();
+				switch(g_ctx.stateId){
+					case STATE_DOWNLOAD_PL:
+						stopDownloading();
+						break;
+					case STATE_DOWNLOAD_FILES:
+						stopDownloading();
+						break;
+				}
 				break;
 		}
 	}
 	return NULL;
-}
-
-static void put_task (Task *task)
-{
-	pthread_mutex_lock(&g_ctx.mutex);
-	LOGI("Put task: %d\n", task->task);
-	assert(task);
-	TAILQ_INSERT_TAIL(&g_ctx.tasks, task, next);
-	pthread_cond_broadcast(&g_ctx.cv);
-	LOGI("put task");
-	pthread_mutex_unlock(&g_ctx.mutex);
 }
 
 static int addTask (TaskId taskId, void *args)
