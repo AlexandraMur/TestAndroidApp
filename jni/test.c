@@ -56,7 +56,6 @@ struct NativeContext
 	pthread_mutex_t mutex;
 	pthread_cond_t cv;
 	pthread_t task_thread;
-	pthread_t download_thread;
 	bool thread_initialized;
 	bool mutex_initialized;
 	bool cv_initialized;
@@ -128,6 +127,13 @@ static void clear_tasks ()
 
 static void nativeDeinit()
 {
+	pthread_mutex_lock(&g_ctx.mutex);
+	g_ctx.shutdown = 1;
+	pthread_cond_broadcast(&g_ctx.cv);
+	pthread_mutex_unlock(&g_ctx.mutex);
+	pthread_join(g_ctx.task_thread, NULL);
+	clear_tasks();
+
 	playlist_destroy(g_ctx.playlist);
 	downloader_destroy(g_ctx.d);
 
@@ -137,14 +143,6 @@ static void nativeDeinit()
 	if (g_ctx.sync.cv_flag) {
 		pthread_cond_destroy(&g_ctx.sync.cv);
 	}
-
-	pthread_mutex_lock(&g_ctx.mutex);
-	g_ctx.shutdown = 1;
-	pthread_cond_broadcast(&g_ctx.cv);
-	pthread_mutex_unlock(&g_ctx.mutex);
-	pthread_join(g_ctx.task_thread, NULL);
-	pthread_join(g_ctx.download_thread, NULL);
-	clear_tasks();
 
 	if (g_ctx.cv_initialized) {
 		pthread_cond_destroy(&g_ctx.cv);
