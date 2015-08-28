@@ -69,7 +69,7 @@ static void put_task (Task *task)
 static void my_complete (Downloader *d, void *args, int status, size_t number_files_in_stack)
 {
 	switch (g_ctx.stateId){
-		case STATE_DOWNLOAD_PL:
+		case STATE_DOWNLOAD_PL:{
 			if (status == -1){
 				Task *task = calloc(1,sizeof(Task));
 				task->task = TASK_STOP;
@@ -80,6 +80,7 @@ static void my_complete (Downloader *d, void *args, int status, size_t number_fi
 			task->task = TASK_PARSE_PL;
 			put_task(task);
 			break;
+		}
 	}
 	LOGI("Downloaded");
 }
@@ -144,6 +145,7 @@ static void downloadPlaylist (void* arg_)
 	if (g_ctx.stateId != STATE_AVAILABLE){
 		return;
 	}
+
 	g_ctx.stateId = STATE_DOWNLOAD_PL;
 	long arg = (long) arg_;
 	//const char *url = "http://public.tv/api/?s=9c1997663576a8b11d1c4f8becd57e52&c=playlist_full&date=2015-07-06";
@@ -159,11 +161,9 @@ static void downloadPlaylist (void* arg_)
 
 static void stopDownloading ()
 {
-	if ((g_ctx.stateId != STATE_DOWNLOAD_PL) && (g_ctx.stateId != STATE_DOWNLOAD_FILES)){
+	if (g_ctx.stateId == STATE_AVAILABLE) {
 		return;
 	}
-
-	g_ctx.stateId = STATE_AVAILABLE;
 	downloader_stop(g_ctx.d);
 }
 
@@ -173,12 +173,11 @@ static void parsePlaylistAndDownloadFiles (void *args)
 		return;
 	}
 
-	g_ctx.stateId = STATE_DOWNLOAD_FILES;
+	g_ctx.stateId = STATE_DOWNLOAD_PL;
 	g_ctx.playlist = playlist_create();
 	if (!g_ctx.playlist) {
 		nativeDeinit();
 	}
-	g_ctx.stateId = STATE_DOWNLOAD_PL;
 	const char *name = "/sdcard/file.json";
 	int parse_res = playlist_parse(g_ctx.playlist, name);
 	if (!parse_res) {
