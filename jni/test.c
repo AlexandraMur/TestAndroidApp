@@ -58,7 +58,7 @@ struct NativeContext
 typedef struct NativeContext NativeContext;
 
 static void task_stop (NativeContext *context);
-static void task_download(NativeContext *);
+static void task_download_files(NativeContext *);
 static void *task_flow(void *args);
 static void nativeDeinit(JNIEnv *env, jobject obj, jlong args);
 static jlong nativeInit();
@@ -147,10 +147,6 @@ static const IDownloader_Cb my_callbacks =
 
 static void task_download_playlist (NativeContext *context)
 {
-	if (context->state_id != STATE_AVAILABLE){
-		return;
-	}
-	context->state_id = STATE_DOWNLOAD_PL;
 	const char *url = "http://192.168.4.102:80/test2.txt";
 	const char *name = "/sdcard/file.json";
 
@@ -248,11 +244,7 @@ static void nativeDeinit(JNIEnv *env, jobject obj, jlong args)
 
 static void task_stop (NativeContext *context)
 {
-	if (context->state_id == STATE_AVAILABLE) {
-		return;
-	}
 	downloader_stop(context->d);
-	context->state_id = STATE_AVAILABLE;
 }
 
 static int parse_playlist (NativeContext *context)
@@ -291,13 +283,8 @@ static int download_files (NativeContext *context)
 	return CLIENT_OK;
 }
 
-void task_download(NativeContext *context)
+void task_download_files(NativeContext *context)
 {
-	if (context->state_id == STATE_DOWNLOAD_FILES){
-		return;
-	}
-	context->state_id = STATE_DOWNLOAD_FILES;
-
 	int res = parse_playlist(context);
 	if(res == CLIENT_ERROR){
 		task_stop(context);
@@ -332,16 +319,25 @@ static void* task_flow (void *args)
 		pthread_mutex_unlock(&context->mutex);
 		switch(current_task->task){
 			case TASK_DOWNLOAD_PL:
+				if (context->state_id != STATE_AVAILABLE){
+					break;
+				}
+				context->state_id = STATE_DOWNLOAD_PL;
 				task_download_playlist(context);
-				LOGE("TASK_DOWNLOAD_PL");
 				break;
 			case TASK_DOWNLOAD_FILES:
-				task_download(context);
-				LOGE("TASK_DOWNLOAD_FILES");
+				if (context->state_id == STATE_DOWNLOAD_FILES){
+					break;
+				}
+				context->state_id = STATE_DOWNLOAD_FILES;
+				task_download_files(context);
 				break;
 			case TASK_STOP:
+				if (context->state_id == STATE_AVAILABLE) {
+					break;
+				}
+				context->state_id = STATE_AVAILABLE;
 				task_stop(context);
-				LOGE("TASK STOP");
 				break;
 		}
 		destroy_task(current_task);
@@ -355,7 +351,7 @@ static void nativeStartDownloading (JNIEnv *env, jobject obj, jlong args)
 	assert(context);
 	Task *task = create_task(TASK_DOWNLOAD_PL, (void*)args);
 	if (!task) {
-		task->task = TASK_DOWNLOAD_PL;
+		return;
 	}
 	put_task(task, context);
 }
@@ -366,7 +362,7 @@ static void nativeStopDownloading (JNIEnv *env, jobject obj, jlong args)
 	assert(context);
 	Task *task = create_task(TASK_STOP, NULL);
 	if (!task){
-		task->task = TASK_STOP;
+		return;
 	}
 	put_task(task, context);
 }
