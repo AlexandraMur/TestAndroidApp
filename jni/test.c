@@ -240,7 +240,6 @@ static void task_stop (NativeContext *g_ctx)
 	if (g_ctx->stateId == STATE_AVAILABLE) {
 		return;
 	}
-
 	downloader_stop(g_ctx->d);
 	g_ctx->stateId = STATE_AVAILABLE;
 }

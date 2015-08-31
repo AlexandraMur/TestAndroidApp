@@ -15,7 +15,7 @@
         android:text="@string/hello_world" />
 nativeTest();
     <Button
-        android:id="@+id/button1"
+        android:id="@+id/download"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_alignParentLeft="true"
@@ -25,12 +25,13 @@ nativeTest();
         android:text="Download" />
 
     <Button
-        android:id="@+id/button2"
+        android:id="@+id/stop"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_alignBaseline="@+id/button1"
-        android:layout_alignBottom="@+id/button1"
-        android:layout_toRightOf="@+id/button1"
+        android:layout_alignBaseline="@+id/download"
+        android:layout_alignBottom="@+id/download"
+        android:layout_marginLeft="15dp"
+        android:layout_toRightOf="@+id/download"
         android:text="Stop" />
 
 </RelativeLayout>

@@ -24,6 +24,24 @@ public class MainActivity extends Activity{
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		Log.d(TAG, "onCreate");
+		
+		setContentView(com.example.testandroidapp.R.layout.activity_main);
+		View download_button = findViewById(com.example.testandroidapp.R.id.download);
+		download_button.setOnClickListener(new View.OnClickListener() {
+			@Override
+			public void onClick(View v) {
+				Log.d(TAG, "Button DOWNLOAD pushed");
+				nativeStartDownloading(args);
+			}
+		});
+		View stop_button = findViewById(com.example.testandroidapp.R.id.stop);
+		stop_button.setOnClickListener(new View.OnClickListener() {
+			@Override
+			public void onClick(View v) {
+				Log.d(TAG, "Button STOP pushed");
+				nativeStopDownloading(args);
+			}
+		});
 	}
 	
 	@Override
@@ -32,25 +50,6 @@ public class MainActivity extends Activity{
 		Log.d(TAG, "onResume");
 		
 		this.args = nativeInit();
-		setContentView(com.example.testandroidapp.R.layout.activity_main);
-	
-		View download_button = findViewById(com.example.testandroidapp.R.id.button1);
-		download_button.setOnClickListener(new View.OnClickListener() {
-			@Override
-			public void onClick(View v) {
-				Log.d(TAG, "Button DOWNLOAD pushed");
-				nativeStartDownloading(args);
-			}
-		});
-		
-		View stop_button = findViewById(com.example.testandroidapp.R.id.button2);
-		stop_button.setOnClickListener(new View.OnClickListener() {
-			@Override
-			public void onClick(View v) {
-				Log.d(TAG, "Button STOP pushed");
-				nativeStopDownloading(args);
-			}
-		});
 	}
 	
 	@Override
