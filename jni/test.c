@@ -176,7 +176,9 @@ static jlong nativeInit (JNIEnv *env, jobject obj)
 	context->cv_initialized = 0;
 	context->stateId = STATE_AVAILABLE;
 	context->d = downloader_create(&my_callbacks, (void*)context);
+
 	if (!context->d){
+		free(context);
 		return 0;
 	}
 	int timeout = 1000 * 2;
@@ -207,6 +209,13 @@ exit:
 	if (context->cv_initialized) {
 		pthread_cond_destroy(&context->cv);
 	}
+	if (context->d){
+		downloader_destroy(context->d);
+	}
+	if (context->playlist){
+		playlist_destroy(context->playlist);
+	}
+	free(context);
 	return 0;
 }
 
@@ -232,6 +241,7 @@ static void nativeDeinit(JNIEnv *env, jobject obj, jlong args)
 	if (context->mutex_initialized) {
 		pthread_mutex_destroy(&context->mutex);
 	}
+	free(context);
 	LOGI("finished\n");
 }
 
