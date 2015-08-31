@@ -62,6 +62,16 @@ static void task_download_files(NativeContext *);
 static void *task_flow(void *args);
 static void nativeDeinit(JNIEnv *env, jobject obj, jlong args);
 static jlong nativeInit();
+static void clear_tasks (NativeContext *context);
+
+static void reset(NativeContext *context)
+{
+	pthread_mutex_lock(&context->mutex);
+	clear_tasks(context);
+	pthread_mutex_unlock(&context->mutex);
+	downloader_stop(context->d);
+	context->state_id = STATE_AVAILABLE;
+}
 
 static void destroy_task(Task *task)
 {
@@ -109,18 +119,14 @@ static void my_complete (Downloader *d, void *args, int status, size_t number_fi
 			if (status == -1){
 				Task *task = create_task(TASK_STOP, (void*)args);
 				if (!task){
-					task = calloc(1, sizeof(Task));
-					task->task = TASK_STOP;
-					return;
+					reset(context);
 				}
 				put_task(task, context);
 				break;
 			}
 			Task *task = create_task(TASK_DOWNLOAD_FILES, (void*)args);
 			if (!task){
-				task = calloc(1, sizeof(Task));
-				task->task = TASK_DOWNLOAD_FILES;
-				return;
+				reset(context);
 			}
 			put_task(task, context);
 			break;
@@ -152,7 +158,7 @@ static void task_download_playlist (NativeContext *context)
 
 	int res = downloader_add(context->d, url, name);
 	if (res) {
-		task_stop(context);
+		reset(context);
 	}
 	LOGI("Playlist downloaded\n");
 }
@@ -244,7 +250,7 @@ static void nativeDeinit(JNIEnv *env, jobject obj, jlong args)
 
 static void task_stop (NativeContext *context)
 {
-	downloader_stop(context->d);
+	reset(context);
 }
 
 static int parse_playlist (NativeContext *context)
@@ -287,13 +293,13 @@ void task_download_files(NativeContext *context)
 {
 	int res = parse_playlist(context);
 	if(res == CLIENT_ERROR){
-		task_stop(context);
+		reset(context);
 		return;
 	}
 
 	res = download_files(context);
 	if(res == CLIENT_ERROR){
-		task_stop(context);
+		reset(context);
 		return;
 	}
 }
