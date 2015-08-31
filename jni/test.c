@@ -120,6 +120,7 @@ static void my_complete (Downloader *d, void *args, int status, size_t number_fi
 				Task *task = create_task(TASK_STOP, (void*)args);
 				if (!task){
 					reset(context);
+					break;
 				}
 				put_task(task, context);
 				break;
@@ -127,6 +128,7 @@ static void my_complete (Downloader *d, void *args, int status, size_t number_fi
 			Task *task = create_task(TASK_DOWNLOAD_FILES, (void*)args);
 			if (!task){
 				reset(context);
+				break;
 			}
 			put_task(task, context);
 			break;

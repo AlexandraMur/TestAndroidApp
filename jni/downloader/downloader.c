@@ -315,4 +315,7 @@ void downloader_stop(Downloader *d)
 {
 	assert(d);
 	http_client_reset(d->http_client);
+	pthread_mutex_lock(&d->mutex);
+	clear_jobs(d);
+	pthread_mutex_unlock(&d->mutex);
 }
