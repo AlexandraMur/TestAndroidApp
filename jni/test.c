@@ -53,7 +53,7 @@ struct NativeContext
 	int shutdown;
 	Tasks tasks;
 	StateId stateId;
-};	// g_ctx;
+};
 
 typedef struct NativeContext NativeContext;
 
@@ -170,7 +170,6 @@ static jlong nativeInit (JNIEnv *env, jobject obj)
 	if(!g_ctx){
 		return 0;
 	}
-
 	assert(g_ctx);
 
 	g_ctx->d = NULL;
@@ -204,7 +203,7 @@ static jlong nativeInit (JNIEnv *env, jobject obj)
 	if (pthread_create(&g_ctx->task_thread, NULL, (void*)task_flow, (void*)g_ctx)) {
 		goto exit;
 	}
-	return CLIENT_OK;
+	return (jlong)((intptr_t)g_ctx);
 exit:
 	if (g_ctx->mutex_initialized) {
 		pthread_mutex_destroy(&g_ctx->mutex);
@@ -218,7 +217,7 @@ exit:
 static void nativeDeinit(JNIEnv *env, jobject obj, jlong args)
 {
 	NativeContext *g_ctx = (NativeContext*)((intptr_t)args);
-	/*assert(g_ctx);
+	assert(g_ctx);
 
 	pthread_mutex_lock(&g_ctx->mutex);
 	LOGI("***");
@@ -238,7 +237,7 @@ static void nativeDeinit(JNIEnv *env, jobject obj, jlong args)
 	if (g_ctx->mutex_initialized) {
 		pthread_mutex_destroy(&g_ctx->mutex);
 	}
-*/
+
 	LOGI("finished\n");
 }
 
@@ -355,6 +354,7 @@ static void* task_flow (void *args)
 static void nativeStartDownloading (JNIEnv *env, jobject obj, jlong args)
 {
 	NativeContext *g_ctx = (NativeContext*)((intptr_t)args);
+	assert(g_ctx);
 	Task *task = create_task(TASK_DOWNLOAD_PL, (void*)args);
 	if (!task) {
 		task->task = TASK_DOWNLOAD_PL;
@@ -366,6 +366,7 @@ static void nativeStartDownloading (JNIEnv *env, jobject obj, jlong args)
 static void nativeStopDownloading (JNIEnv *env, jobject obj, jlong args)
 {
 	NativeContext *g_ctx = (NativeContext*)((intptr_t)args);
+	assert(g_ctx);
 	Task *task = create_task(TASK_STOP, NULL);
 	if (!task){
 		task->task = TASK_STOP;

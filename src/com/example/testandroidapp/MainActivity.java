@@ -57,6 +57,6 @@ public class MainActivity extends Activity{
 	protected void onPause(){
 		super.onPause();
 		Log.d(TAG, "onPause");
-		nativeDeinit(args);
+		nativeDeinit(this.args);
 	}
 }
