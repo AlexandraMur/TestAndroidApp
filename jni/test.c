@@ -156,7 +156,7 @@ static void task_download_playlist (NativeContext *g_ctx)
 
 	int res = downloader_add(g_ctx->d, url, name);
 	if (res) {
-		nativeDeinit((jlong)g_ctx);
+		nativeDeinit((jlong)((intptr_t)g_ctx));
 	}
 	LOGI("Playlist downloaded\n");
 }
@@ -217,6 +217,7 @@ static void nativeDeinit(jlong args)
 	assert(g_ctx);
 
 	pthread_mutex_lock(&g_ctx->mutex);
+	LOGI("***");
 	g_ctx->shutdown = 1;
 	pthread_cond_broadcast(&g_ctx->cv);
 	pthread_mutex_unlock(&g_ctx->mutex);
@@ -242,9 +243,10 @@ static void task_stop (NativeContext *g_ctx)
 	if (g_ctx->stateId == STATE_AVAILABLE) {
 		return;
 	}
+
 	downloader_stop(g_ctx->d);
 	g_ctx->stateId = STATE_AVAILABLE;
-	nativeDeinit(g_ctx);
+	nativeDeinit((jlong)((intptr_t)g_ctx));
 	nativeInit();
 }
 
@@ -293,13 +295,13 @@ void task_download(NativeContext *g_ctx)
 
 	int res = parse_playlist(g_ctx);
 	if(res == CLIENT_ERROR){
-		nativeDeinit((jlong)g_ctx);
+		nativeDeinit((jlong)((intptr_t)g_ctx));
 		return;
 	}
 
 	res = download_files(g_ctx);
 	if(res == CLIENT_ERROR){
-		nativeDeinit(g_ctx);
+		nativeDeinit((jlong)((intptr_t)g_ctx));
 		return;
 	}
 }
@@ -312,7 +314,8 @@ static void* task_flow (void *args)
 	while(1)
 	{
 		pthread_mutex_lock(&g_ctx->mutex);
-		while (TAILQ_EMPTY(&g_ctx->tasks) && !g_ctx->shutdown){
+		while (TAILQ_EMPTY(&g_ctx->tasks) && !g_ctx->shutdown) {
+			LOGE("*** wait ***");
 			pthread_cond_wait(&g_ctx->cv, &g_ctx->mutex);
 		}
 

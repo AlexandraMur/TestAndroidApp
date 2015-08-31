@@ -33,7 +33,7 @@ public class MainActivity extends Activity{
 		
 		this.args = nativeInit();
 		setContentView(com.example.testandroidapp.R.layout.activity_main);
-		
+	
 		View download_button = findViewById(com.example.testandroidapp.R.id.button1);
 		download_button.setOnClickListener(new View.OnClickListener() {
 			@Override
