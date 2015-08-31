@@ -84,9 +84,7 @@ static Task* get_task (NativeContext *g_ctx)
 
 static void put_task (Task *task, NativeContext *g_ctx)
 {
-	LOGE("*");
 	pthread_mutex_lock(&g_ctx->mutex);
-	LOGE("**");
 	LOGI("Put task: %d\n", task->task);
 	assert(task);
 	TAILQ_INSERT_TAIL(&g_ctx->tasks, task, next);
@@ -106,7 +104,7 @@ static void my_complete (Downloader *d, void *args, int status, size_t number_fi
 {
 	NativeContext *g_ctx = (NativeContext*)((intptr_t)args);
 	switch (g_ctx->stateId){
-		case STATE_DOWNLOAD_PL:{
+		case STATE_DOWNLOAD_PL:
 			if (status == -1){
 				Task *task = create_task(TASK_STOP, (void*)args);
 				if (!task){
@@ -125,7 +123,6 @@ static void my_complete (Downloader *d, void *args, int status, size_t number_fi
 			}
 			put_task(task, g_ctx);
 			break;
-		}
 	}
 	LOGI("Downloaded");
 }
@@ -170,7 +167,6 @@ static jlong nativeInit (JNIEnv *env, jobject obj)
 	if(!g_ctx){
 		return 0;
 	}
-	assert(g_ctx);
 
 	g_ctx->d = NULL;
 	g_ctx->playlist = NULL;
@@ -220,7 +216,6 @@ static void nativeDeinit(JNIEnv *env, jobject obj, jlong args)
 	assert(g_ctx);
 
 	pthread_mutex_lock(&g_ctx->mutex);
-	LOGI("***");
 	g_ctx->shutdown = 1;
 	pthread_cond_broadcast(&g_ctx->cv);
 	pthread_mutex_unlock(&g_ctx->mutex);
@@ -237,7 +232,6 @@ static void nativeDeinit(JNIEnv *env, jobject obj, jlong args)
 	if (g_ctx->mutex_initialized) {
 		pthread_mutex_destroy(&g_ctx->mutex);
 	}
-
 	LOGI("finished\n");
 }
 
@@ -249,8 +243,6 @@ static void task_stop (NativeContext *g_ctx)
 
 	downloader_stop(g_ctx->d);
 	g_ctx->stateId = STATE_AVAILABLE;
-	nativeDeinit(NULL, NULL, (jlong)((intptr_t)g_ctx));
-	nativeInit(NULL, NULL);
 }
 
 static int parse_playlist (NativeContext *g_ctx)
@@ -318,7 +310,6 @@ static void* task_flow (void *args)
 	{
 		pthread_mutex_lock(&g_ctx->mutex);
 		while (TAILQ_EMPTY(&g_ctx->tasks) && !g_ctx->shutdown) {
-			LOGE("*** wait ***");
 			pthread_cond_wait(&g_ctx->cv, &g_ctx->mutex);
 		}
 
@@ -330,21 +321,18 @@ static void* task_flow (void *args)
 		Task *current_task = get_task(g_ctx);
 		pthread_mutex_unlock(&g_ctx->mutex);
 		switch(current_task->task){
-			case TASK_DOWNLOAD_PL:{
+			case TASK_DOWNLOAD_PL:
 				task_download_playlist(g_ctx);
 				LOGE("TASK_DOWNLOAD_PL");
 				break;
-			}
-			case TASK_DOWNLOAD_FILES:{
+			case TASK_DOWNLOAD_FILES:
 				task_download(g_ctx);
 				LOGE("TASK_DOWNLOAD_FILES");
 				break;
-			}
-			case TASK_STOP:{
+			case TASK_STOP:
 				task_stop(g_ctx);
 				LOGE("TASK STOP");
 				break;
-			}
 		}
 		destroy_task(current_task);
 	}
