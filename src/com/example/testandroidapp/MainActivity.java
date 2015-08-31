@@ -15,10 +15,10 @@ public class MainActivity extends Activity{
 		System.loadLibrary("test");
 	}
 	
-	private native void nativeStartDownloading();
-	private native void nativeStopDownloading();
-	private native int nativeInit();
-	private native void nativeDeinit();
+	private native void nativeStartDownloading(long args);
+	private native void nativeStopDownloading(long args);
+	private native long nativeInit();
+	private native void nativeDeinit(long args);
 	
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -31,7 +31,7 @@ public class MainActivity extends Activity{
 		super.onResume();
 		Log.d(TAG, "onResume");
 		
-		nativeInit();
+		this.args = nativeInit();
 		setContentView(com.example.testandroidapp.R.layout.activity_main);
 		
 		View download_button = findViewById(com.example.testandroidapp.R.id.button1);
@@ -39,7 +39,7 @@ public class MainActivity extends Activity{
 			@Override
 			public void onClick(View v) {
 				Log.d(TAG, "Button DOWNLOAD pushed");
-				nativeStartDownloading();
+				nativeStartDownloading(args);
 			}
 		});
 		
@@ -48,7 +48,7 @@ public class MainActivity extends Activity{
 			@Override
 			public void onClick(View v) {
 				Log.d(TAG, "Button STOP pushed");
-				nativeStopDownloading();
+				nativeStopDownloading(args);
 			}
 		});
 	}
@@ -57,6 +57,6 @@ public class MainActivity extends Activity{
 	protected void onPause(){
 		super.onPause();
 		Log.d(TAG, "onPause");
-		nativeDeinit();
+		nativeDeinit(args);
 	}
 }
