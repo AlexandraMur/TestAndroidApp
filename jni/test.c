@@ -21,19 +21,19 @@ static void nativeDeinit();
 static int nativeInit();
 
 typedef enum {
-	TASK_DOWNLOAD_PL,
-    TASK_PARSE_PL,
+	TASK_DOWNLOAD_PL = 0,
+    TASK_DOWNLOAD_FILES,
 	TASK_STOP
 } TaskId;
 
 typedef enum {
-	STATE_DOWNLOAD_PL,
+	STATE_DOWNLOAD_PL = 0,
 	STATE_DOWNLOAD_FILES,
 	STATE_AVAILABLE
 } StateId;
 
 typedef enum {
-    CLIENT_OK,
+    CLIENT_OK = 0,
 	CLIENT_ERROR
 } ClientStatus;
 
@@ -69,7 +69,7 @@ static void destroy_task(Task *task)
 static Task* create_task(TaskId taskId, void *args)
 {
 	Task *task = calloc(1,sizeof(Task));
-	if (!task){
+	if (task){
 		task->task = taskId;
 	}
 	return task;
@@ -89,7 +89,6 @@ static void put_task (Task *task)
 	assert(task);
 	TAILQ_INSERT_TAIL(&g_ctx.tasks, task, next);
 	pthread_cond_broadcast(&g_ctx.cv);
-	LOGI("put task");
 	pthread_mutex_unlock(&g_ctx.mutex);
 }
 
@@ -108,15 +107,17 @@ static void my_complete (Downloader *d, void *args, int status, size_t number_fi
 			if (status == -1){
 				Task *task = create_task(TASK_STOP, (void*)args);
 				if (!task){
+					task = calloc(1, sizeof(Task));
 					task->task = TASK_STOP;
 					return;
 				}
 				put_task(task);
 				break;
 			}
-			Task *task = create_task(TASK_PARSE_PL, (void*)args);
+			Task *task = create_task(TASK_DOWNLOAD_FILES, (void*)args);
 			if (!task){
-				task->task = TASK_PARSE_PL;
+				task = calloc(1, sizeof(Task));
+				task->task = TASK_DOWNLOAD_FILES;
 				return;
 			}
 			put_task(task);
@@ -276,10 +277,10 @@ static int download_files (void *args)
 
 void task_download(void *args)
 {
-	if (g_ctx.stateId != STATE_DOWNLOAD_PL){
+	if (g_ctx.stateId == STATE_DOWNLOAD_FILES){
 		return;
 	}
-	g_ctx.stateId = STATE_DOWNLOAD_PL;
+	g_ctx.stateId = STATE_DOWNLOAD_FILES;
 
 	int res = parse_playlist(args);
 	if(res == CLIENT_ERROR){
@@ -302,27 +303,27 @@ static void* task_flow (void *args)
 		while (TAILQ_EMPTY(&g_ctx.tasks) && !g_ctx.shutdown){
 			pthread_cond_wait(&g_ctx.cv, &g_ctx.mutex);
 		}
+
 		if (g_ctx.shutdown) {
 			pthread_mutex_unlock(&g_ctx.mutex);
 			break;
 		}
 		Task *current_task = get_task();
 		pthread_mutex_unlock(&g_ctx.mutex);
-
 		switch(current_task->task){
 			case TASK_DOWNLOAD_PL:{
-				LOGE("TASK DOWNLOAD PL");
 				task_download_playlist(args);
+				LOGE("TASK_DOWNLOAD_PL");
 				break;
 			}
-			case TASK_PARSE_PL:{
-				LOGE("TASK_PARSE_PL");
+			case TASK_DOWNLOAD_FILES:{
 				task_download(args);
+				LOGE("TASK_DOWNLOAD_FILES");
 				break;
 			}
 			case TASK_STOP:{
-				LOGE("TASK STOP");
 				task_stop();
+				LOGE("TASK STOP");
 				break;
 			}
 		}
