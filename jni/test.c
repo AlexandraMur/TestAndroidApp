@@ -59,7 +59,7 @@ typedef struct NativeContext NativeContext;
 
 static void task_download(NativeContext *);
 static void *task_flow(void *args);
-static void nativeDeinit(jlong args);
+static void nativeDeinit(JNIEnv *env, jobject obj, jlong args);
 static jlong nativeInit();
 
 static void destroy_task(Task *task)
@@ -84,7 +84,9 @@ static Task* get_task (NativeContext *g_ctx)
 
 static void put_task (Task *task, NativeContext *g_ctx)
 {
+	LOGE("*");
 	pthread_mutex_lock(&g_ctx->mutex);
+	LOGE("**");
 	LOGI("Put task: %d\n", task->task);
 	assert(task);
 	TAILQ_INSERT_TAIL(&g_ctx->tasks, task, next);
@@ -156,18 +158,20 @@ static void task_download_playlist (NativeContext *g_ctx)
 
 	int res = downloader_add(g_ctx->d, url, name);
 	if (res) {
-		nativeDeinit((jlong)((intptr_t)g_ctx));
+		nativeDeinit(NULL, NULL, (jlong)((intptr_t)g_ctx));
 	}
 	LOGI("Playlist downloaded\n");
 }
 
-static jlong nativeInit ()
+static jlong nativeInit (JNIEnv *env, jobject obj)
 {
 	NativeContext *g_ctx = calloc(1, sizeof(NativeContext));
 
 	if(!g_ctx){
 		return 0;
 	}
+
+	assert(g_ctx);
 
 	g_ctx->d = NULL;
 	g_ctx->playlist = NULL;
@@ -211,10 +215,10 @@ exit:
 	return 0;
 }
 
-static void nativeDeinit(jlong args)
+static void nativeDeinit(JNIEnv *env, jobject obj, jlong args)
 {
 	NativeContext *g_ctx = (NativeContext*)((intptr_t)args);
-	assert(g_ctx);
+	/*assert(g_ctx);
 
 	pthread_mutex_lock(&g_ctx->mutex);
 	LOGI("***");
@@ -234,7 +238,7 @@ static void nativeDeinit(jlong args)
 	if (g_ctx->mutex_initialized) {
 		pthread_mutex_destroy(&g_ctx->mutex);
 	}
-
+*/
 	LOGI("finished\n");
 }
 
@@ -246,8 +250,8 @@ static void task_stop (NativeContext *g_ctx)
 
 	downloader_stop(g_ctx->d);
 	g_ctx->stateId = STATE_AVAILABLE;
-	nativeDeinit((jlong)((intptr_t)g_ctx));
-	nativeInit();
+	nativeDeinit(NULL, NULL, (jlong)((intptr_t)g_ctx));
+	nativeInit(NULL, NULL);
 }
 
 static int parse_playlist (NativeContext *g_ctx)
@@ -295,13 +299,13 @@ void task_download(NativeContext *g_ctx)
 
 	int res = parse_playlist(g_ctx);
 	if(res == CLIENT_ERROR){
-		nativeDeinit((jlong)((intptr_t)g_ctx));
+		nativeDeinit(NULL, NULL, (jlong)((intptr_t)g_ctx));
 		return;
 	}
 
 	res = download_files(g_ctx);
 	if(res == CLIENT_ERROR){
-		nativeDeinit((jlong)((intptr_t)g_ctx));
+		nativeDeinit(NULL, NULL, (jlong)((intptr_t)g_ctx));
 		return;
 	}
 }
@@ -348,7 +352,7 @@ static void* task_flow (void *args)
 	return NULL;
 }
 
-static void nativeStartDownloading (jlong args)
+static void nativeStartDownloading (JNIEnv *env, jobject obj, jlong args)
 {
 	NativeContext *g_ctx = (NativeContext*)((intptr_t)args);
 	Task *task = create_task(TASK_DOWNLOAD_PL, (void*)args);
@@ -359,7 +363,7 @@ static void nativeStartDownloading (jlong args)
 	put_task(task, g_ctx);
 }
 
-static void nativeStopDownloading (jlong args)
+static void nativeStopDownloading (JNIEnv *env, jobject obj, jlong args)
 {
 	NativeContext *g_ctx = (NativeContext*)((intptr_t)args);
 	Task *task = create_task(TASK_STOP, NULL);
