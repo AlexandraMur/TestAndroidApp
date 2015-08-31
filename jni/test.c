@@ -24,7 +24,7 @@ typedef enum {
 	STATE_DOWNLOAD_PL,
 	STATE_DOWNLOAD_FILES,
 	STATE_AVAILABLE
-} state_id;
+} StateId;
 
 typedef enum {
     CLIENT_OK,
@@ -52,11 +52,12 @@ struct NativeContext
 	bool cv_initialized;
 	int shutdown;
 	Tasks tasks;
-	state_id state_id;
+	StateId state_id;
 };
 
 typedef struct NativeContext NativeContext;
 
+static void task_stop (NativeContext *context);
 static void task_download(NativeContext *);
 static void *task_flow(void *args);
 static void nativeDeinit(JNIEnv *env, jobject obj, jlong args);
