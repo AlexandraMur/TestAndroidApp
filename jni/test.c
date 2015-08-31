@@ -15,13 +15,13 @@
 #define LOGE(fmt, ...) __android_log_print(ANDROID_LOG_ERROR, LOG_TAG, "%s: " fmt, __func__, ## __VA_ARGS__)
 
 typedef enum {
-	TASK_DOWNLOAD_PL = 0,
+	TASK_DOWNLOAD_PL,
     TASK_DOWNLOAD_FILES,
 	TASK_STOP
 } TaskId;
 
 typedef enum {
-	STATE_DOWNLOAD_PL = 0,
+	STATE_DOWNLOAD_PL,
 	STATE_DOWNLOAD_FILES,
 	STATE_AVAILABLE
 } StateId;
@@ -75,35 +75,35 @@ static Task* create_task(TaskId taskId, void *args)
 	return task;
 }
 
-static Task* get_task (NativeContext *g_ctx)
+static Task* get_task (NativeContext *context)
 {
-	Task *task = TAILQ_FIRST(&g_ctx->tasks);
-	TAILQ_REMOVE(&g_ctx->tasks, task, next);
+	Task *task = TAILQ_FIRST(&context->tasks);
+	TAILQ_REMOVE(&context->tasks, task, next);
 	return task;
 }
 
-static void put_task (Task *task, NativeContext *g_ctx)
+static void put_task (Task *task, NativeContext *context)
 {
-	pthread_mutex_lock(&g_ctx->mutex);
+	pthread_mutex_lock(&context->mutex);
 	LOGI("Put task: %d\n", task->task);
 	assert(task);
-	TAILQ_INSERT_TAIL(&g_ctx->tasks, task, next);
-	pthread_cond_broadcast(&g_ctx->cv);
-	pthread_mutex_unlock(&g_ctx->mutex);
+	TAILQ_INSERT_TAIL(&context->tasks, task, next);
+	pthread_cond_broadcast(&context->cv);
+	pthread_mutex_unlock(&context->mutex);
 }
 
-static void clear_tasks (NativeContext *g_ctx)
+static void clear_tasks (NativeContext *context)
 {
-	while (TAILQ_FIRST(&g_ctx->tasks)) {
-		Task *task = get_task(g_ctx);
+	while (TAILQ_FIRST(&context->tasks)) {
+		Task *task = get_task(context);
 		destroy_task(task);
 	}
 }
 
 static void my_complete (Downloader *d, void *args, int status, size_t number_files_in_stack)
 {
-	NativeContext *g_ctx = (NativeContext*)((intptr_t)args);
-	switch (g_ctx->stateId){
+	NativeContext *context = (NativeContext*)((intptr_t)args);
+	switch (context->stateId){
 		case STATE_DOWNLOAD_PL:
 			if (status == -1){
 				Task *task = create_task(TASK_STOP, (void*)args);
@@ -112,7 +112,7 @@ static void my_complete (Downloader *d, void *args, int status, size_t number_fi
 					task->task = TASK_STOP;
 					return;
 				}
-				put_task(task, g_ctx);
+				put_task(task, context);
 				break;
 			}
 			Task *task = create_task(TASK_DOWNLOAD_FILES, (void*)args);
@@ -121,7 +121,7 @@ static void my_complete (Downloader *d, void *args, int status, size_t number_fi
 				task->task = TASK_DOWNLOAD_FILES;
 				return;
 			}
-			put_task(task, g_ctx);
+			put_task(task, context);
 			break;
 	}
 	LOGI("Downloaded");
@@ -144,115 +144,115 @@ static const IDownloader_Cb my_callbacks =
 		.progress = &my_progress
 };
 
-static void task_download_playlist (NativeContext *g_ctx)
+static void task_download_playlist (NativeContext *context)
 {
-	if (g_ctx->stateId != STATE_AVAILABLE){
+	if (context->stateId != STATE_AVAILABLE){
 		return;
 	}
-	g_ctx->stateId = STATE_DOWNLOAD_PL;
+	context->stateId = STATE_DOWNLOAD_PL;
 	const char *url = "http://192.168.4.102:80/test2.txt";
 	const char *name = "/sdcard/file.json";
 
-	int res = downloader_add(g_ctx->d, url, name);
+	int res = downloader_add(context->d, url, name);
 	if (res) {
-		nativeDeinit(NULL, NULL, (jlong)((intptr_t)g_ctx));
+		nativeDeinit(NULL, NULL, (jlong)((intptr_t)context));
 	}
 	LOGI("Playlist downloaded\n");
 }
 
 static jlong nativeInit (JNIEnv *env, jobject obj)
 {
-	NativeContext *g_ctx = calloc(1, sizeof(NativeContext));
+	NativeContext *context = calloc(1, sizeof(NativeContext));
 
-	if(!g_ctx){
+	if(!context){
 		return 0;
 	}
 
-	g_ctx->d = NULL;
-	g_ctx->playlist = NULL;
-	g_ctx->shutdown = 0;
-	g_ctx->thread_initialized = 0;
-	g_ctx->mutex_initialized = 0;
-	g_ctx->cv_initialized = 0;
-	g_ctx->stateId = STATE_AVAILABLE;
-	g_ctx->d = downloader_create(&my_callbacks, (void*)g_ctx);
-	if (!g_ctx->d){
+	context->d = NULL;
+	context->playlist = NULL;
+	context->shutdown = 0;
+	context->thread_initialized = 0;
+	context->mutex_initialized = 0;
+	context->cv_initialized = 0;
+	context->stateId = STATE_AVAILABLE;
+	context->d = downloader_create(&my_callbacks, (void*)context);
+	if (!context->d){
 		return 0;
 	}
 	int timeout = 1000 * 2;
 
-	downloader_set_timeout_connection(g_ctx->d, timeout);
-	downloader_set_timeout_recieve(g_ctx->d, timeout);
+	downloader_set_timeout_connection(context->d, timeout);
+	downloader_set_timeout_recieve(context->d, timeout);
 
-	int task_mutex_error = pthread_mutex_init(&g_ctx->mutex, NULL);
-	int task_cv_error = pthread_cond_init(&g_ctx->cv, NULL);
+	int task_mutex_error = pthread_mutex_init(&context->mutex, NULL);
+	int task_cv_error = pthread_cond_init(&context->cv, NULL);
 
 	if (task_mutex_error || task_cv_error){
 		goto exit;
 	}
 
-	g_ctx->mutex_initialized = 1;
-	g_ctx->cv_initialized = 1;
+	context->mutex_initialized = 1;
+	context->cv_initialized = 1;
 
-	TAILQ_INIT(&g_ctx->tasks);
+	TAILQ_INIT(&context->tasks);
 
-	if (pthread_create(&g_ctx->task_thread, NULL, (void*)task_flow, (void*)g_ctx)) {
+	if (pthread_create(&context->task_thread, NULL, (void*)task_flow, (void*)context)) {
 		goto exit;
 	}
-	return (jlong)((intptr_t)g_ctx);
+	return (jlong)((intptr_t)context);
 exit:
-	if (g_ctx->mutex_initialized) {
-		pthread_mutex_destroy(&g_ctx->mutex);
+	if (context->mutex_initialized) {
+		pthread_mutex_destroy(&context->mutex);
 	}
-	if (g_ctx->cv_initialized) {
-		pthread_cond_destroy(&g_ctx->cv);
+	if (context->cv_initialized) {
+		pthread_cond_destroy(&context->cv);
 	}
 	return 0;
 }
 
 static void nativeDeinit(JNIEnv *env, jobject obj, jlong args)
 {
-	NativeContext *g_ctx = (NativeContext*)((intptr_t)args);
-	assert(g_ctx);
+	NativeContext *context = (NativeContext*)((intptr_t)args);
+	assert(context);
 
-	pthread_mutex_lock(&g_ctx->mutex);
-	g_ctx->shutdown = 1;
-	pthread_cond_broadcast(&g_ctx->cv);
-	pthread_mutex_unlock(&g_ctx->mutex);
-	pthread_join(g_ctx->task_thread, NULL);
-	clear_tasks(g_ctx);
+	pthread_mutex_lock(&context->mutex);
+	context->shutdown = 1;
+	pthread_cond_broadcast(&context->cv);
+	pthread_mutex_unlock(&context->mutex);
+	pthread_join(context->task_thread, NULL);
+	clear_tasks(context);
 
-	playlist_destroy(g_ctx->playlist);
-	downloader_destroy(g_ctx->d);
+	playlist_destroy(context->playlist);
+	downloader_destroy(context->d);
 
-	if (g_ctx->cv_initialized) {
-		pthread_cond_destroy(&g_ctx->cv);
+	if (context->cv_initialized) {
+		pthread_cond_destroy(&context->cv);
 	}
 
-	if (g_ctx->mutex_initialized) {
-		pthread_mutex_destroy(&g_ctx->mutex);
+	if (context->mutex_initialized) {
+		pthread_mutex_destroy(&context->mutex);
 	}
 	LOGI("finished\n");
 }
 
-static void task_stop (NativeContext *g_ctx)
+static void task_stop (NativeContext *context)
 {
-	if (g_ctx->stateId == STATE_AVAILABLE) {
+	if (context->stateId == STATE_AVAILABLE) {
 		return;
 	}
-	downloader_stop(g_ctx->d);
-	g_ctx->stateId = STATE_AVAILABLE;
+	downloader_stop(context->d);
+	context->stateId = STATE_AVAILABLE;
 }
 
-static int parse_playlist (NativeContext *g_ctx)
+static int parse_playlist (NativeContext *context)
 {
-	g_ctx->playlist = playlist_create();
-	if (!g_ctx->playlist) {
+	context->playlist = playlist_create();
+	if (!context->playlist) {
 		return CLIENT_ERROR;
 	}
 
 	const char *name = "/sdcard/file.json";
-	int parse_res = playlist_parse(g_ctx->playlist, name);
+	int parse_res = playlist_parse(context->playlist, name);
 	if (!parse_res) {
 		LOGE("Error parse\n");
 		return CLIENT_ERROR;
@@ -260,76 +260,76 @@ static int parse_playlist (NativeContext *g_ctx)
 	return CLIENT_OK;
 }
 
-static int download_files (NativeContext *g_ctx)
+static int download_files (NativeContext *context)
 {
-	assert(g_ctx);
-	for (int i = 0; i < g_ctx->playlist->items_count && !g_ctx->shutdown; i++) {
+	assert(context);
+	for (int i = 0; i < context->playlist->items_count && !context->shutdown; i++) {
 		char *path = "/sdcard/";
-		size_t length = strlen(g_ctx->playlist->items[i].name) + strlen(path);
+		size_t length = strlen(context->playlist->items[i].name) + strlen(path);
 		char *new_name = malloc(length + 1);
 
 		if (!new_name){
 			return CLIENT_ERROR;
 		}
 
-		snprintf(new_name, length + 1, "%s%s", path, g_ctx->playlist->items[i].name);
-		free(g_ctx->playlist->items[i].name);
-		g_ctx->playlist->items[i].name = new_name;
-		downloader_add(g_ctx->d, g_ctx->playlist->items[i].uri, g_ctx->playlist->items[i].name);
+		snprintf(new_name, length + 1, "%s%s", path, context->playlist->items[i].name);
+		free(context->playlist->items[i].name);
+		context->playlist->items[i].name = new_name;
+		downloader_add(context->d, context->playlist->items[i].uri, context->playlist->items[i].name);
 	}
 	return CLIENT_OK;
 }
 
-void task_download(NativeContext *g_ctx)
+void task_download(NativeContext *context)
 {
-	if (g_ctx->stateId == STATE_DOWNLOAD_FILES){
+	if (context->stateId == STATE_DOWNLOAD_FILES){
 		return;
 	}
-	g_ctx->stateId = STATE_DOWNLOAD_FILES;
+	context->stateId = STATE_DOWNLOAD_FILES;
 
-	int res = parse_playlist(g_ctx);
+	int res = parse_playlist(context);
 	if(res == CLIENT_ERROR){
-		nativeDeinit(NULL, NULL, (jlong)((intptr_t)g_ctx));
+		nativeDeinit(NULL, NULL, (jlong)((intptr_t)context));
 		return;
 	}
 
-	res = download_files(g_ctx);
+	res = download_files(context);
 	if(res == CLIENT_ERROR){
-		nativeDeinit(NULL, NULL, (jlong)((intptr_t)g_ctx));
+		nativeDeinit(NULL, NULL, (jlong)((intptr_t)context));
 		return;
 	}
 }
 
 static void* task_flow (void *args)
 {
-	NativeContext *g_ctx = (NativeContext*) args;
-	assert(g_ctx);
+	NativeContext *context = (NativeContext*) args;
+	assert(context);
 
 	while(1)
 	{
-		pthread_mutex_lock(&g_ctx->mutex);
-		while (TAILQ_EMPTY(&g_ctx->tasks) && !g_ctx->shutdown) {
-			pthread_cond_wait(&g_ctx->cv, &g_ctx->mutex);
+		pthread_mutex_lock(&context->mutex);
+		while (TAILQ_EMPTY(&context->tasks) && !context->shutdown) {
+			pthread_cond_wait(&context->cv, &context->mutex);
 		}
 
-		if (g_ctx->shutdown) {
-			pthread_mutex_unlock(&g_ctx->mutex);
+		if (context->shutdown) {
+			pthread_mutex_unlock(&context->mutex);
 			break;
 		}
 
-		Task *current_task = get_task(g_ctx);
-		pthread_mutex_unlock(&g_ctx->mutex);
+		Task *current_task = get_task(context);
+		pthread_mutex_unlock(&context->mutex);
 		switch(current_task->task){
 			case TASK_DOWNLOAD_PL:
-				task_download_playlist(g_ctx);
+				task_download_playlist(context);
 				LOGE("TASK_DOWNLOAD_PL");
 				break;
 			case TASK_DOWNLOAD_FILES:
-				task_download(g_ctx);
+				task_download(context);
 				LOGE("TASK_DOWNLOAD_FILES");
 				break;
 			case TASK_STOP:
-				task_stop(g_ctx);
+				task_stop(context);
 				LOGE("TASK STOP");
 				break;
 		}
@@ -340,26 +340,26 @@ static void* task_flow (void *args)
 
 static void nativeStartDownloading (JNIEnv *env, jobject obj, jlong args)
 {
-	NativeContext *g_ctx = (NativeContext*)((intptr_t)args);
-	assert(g_ctx);
+	NativeContext *context = (NativeContext*)((intptr_t)args);
+	assert(context);
 	Task *task = create_task(TASK_DOWNLOAD_PL, (void*)args);
 	if (!task) {
 		task->task = TASK_DOWNLOAD_PL;
 		return;
 	}
-	put_task(task, g_ctx);
+	put_task(task, context);
 }
 
 static void nativeStopDownloading (JNIEnv *env, jobject obj, jlong args)
 {
-	NativeContext *g_ctx = (NativeContext*)((intptr_t)args);
-	assert(g_ctx);
+	NativeContext *context = (NativeContext*)((intptr_t)args);
+	assert(context);
 	Task *task = create_task(TASK_STOP, NULL);
 	if (!task){
 		task->task = TASK_STOP;
 		return;
 	}
-	put_task(task, g_ctx);
+	put_task(task, context);
 }
 
 static JNINativeMethod methodTable[] =

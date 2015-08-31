@@ -34,6 +34,7 @@ public class MainActivity extends Activity{
 				nativeStartDownloading(args);
 			}
 		});
+		
 		View stop_button = findViewById(com.example.testandroidapp.R.id.stop);
 		stop_button.setOnClickListener(new View.OnClickListener() {
 			@Override
@@ -48,7 +49,6 @@ public class MainActivity extends Activity{
 	protected void onResume(){
 		super.onResume();
 		Log.d(TAG, "onResume");
-		
 		this.args = nativeInit();
 	}
 	
