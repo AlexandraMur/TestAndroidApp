@@ -153,9 +153,7 @@ HttpClientStatus http_client_download (HttpClient *c, const char *url)
 	LOGI("Start download %s\n", url);
 	MyDownloaderStatus downloader_result = (*pEnv)->CallIntMethod(pEnv, obj_MyDownloader, g_method_download, jurl, c->timeout_connection, c->timeout_recieve, (jlong)c);
 	(*pEnv)->DeleteLocalRef(pEnv, jurl);
-
 	result = MyDownloaderStatus_to_HttpClientStatus(downloader_result);
-
 done:
 	if (obj_MyDownloader) {
 		(*pEnv)->DeleteLocalRef(pEnv, obj_MyDownloader);

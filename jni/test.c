@@ -42,7 +42,6 @@ typedef TAILQ_HEAD(Tasks, Task) Tasks;
 struct NativeContext
 {
 	Downloader *d;
-	Playlist *playlist;
 
 	pthread_mutex_t mutex;
 	pthread_cond_t cv;
@@ -174,7 +173,6 @@ static jlong nativeInit (JNIEnv *env, jobject obj)
 	}
 
 	context->d = NULL;
-	context->playlist = NULL;
 	context->shutdown = 0;
 	context->thread_initialized = 0;
 	context->mutex_initialized = 0;
@@ -217,9 +215,7 @@ exit:
 	if (context->d){
 		downloader_destroy(context->d);
 	}
-	if (context->playlist){
-		playlist_destroy(context->playlist);
-	}
+
 	free(context);
 	return 0;
 }
@@ -235,8 +231,6 @@ static void nativeDeinit(JNIEnv *env, jobject obj, jlong args)
 	pthread_mutex_unlock(&context->mutex);
 	pthread_join(context->task_thread, NULL);
 	clear_tasks(context);
-
-	playlist_destroy(context->playlist);
 	downloader_destroy(context->d);
 
 	if (context->cv_initialized) {
@@ -255,55 +249,57 @@ static void task_stop (NativeContext *context)
 	reset(context);
 }
 
-static int parse_playlist (NativeContext *context)
+static Playlist* parse_playlist (NativeContext *context)
 {
-	context->playlist = playlist_create();
-	if (!context->playlist) {
-		return CLIENT_ERROR;
+	Playlist *playlist = playlist_create();
+	if (!playlist) {
+		return NULL;
 	}
 
 	const char *name = "/sdcard/file.json";
-	int parse_res = playlist_parse(context->playlist, name);
+	int parse_res = playlist_parse(playlist, name);
 	if (!parse_res) {
 		LOGE("Error parse\n");
-		return CLIENT_ERROR;
+		playlist_destroy(playlist);
+		return NULL;
 	}
-	return CLIENT_OK;
+	return playlist;
 }
 
-static int download_files (NativeContext *context)
+static int download_files (NativeContext *context, Playlist *playlist)
 {
 	assert(context);
-	for (int i = 0; i < context->playlist->items_count && !context->shutdown; i++) {
+	assert(playlist);
+	for (int i = 0; i < playlist->items_count && !context->shutdown; i++) {
 		char *path = "/sdcard/";
-		size_t length = strlen(context->playlist->items[i].name) + strlen(path);
+		size_t length = strlen(playlist->items[i].name) + strlen(path);
 		char *new_name = malloc(length + 1);
 
 		if (!new_name){
 			return CLIENT_ERROR;
 		}
 
-		snprintf(new_name, length + 1, "%s%s", path, context->playlist->items[i].name);
-		free(context->playlist->items[i].name);
-		context->playlist->items[i].name = new_name;
-		downloader_add(context->d, context->playlist->items[i].uri, context->playlist->items[i].name);
+		snprintf(new_name, length + 1, "%s%s", path, playlist->items[i].name);
+		free(playlist->items[i].name);
+		playlist->items[i].name = new_name;
+		downloader_add(context->d, playlist->items[i].uri, playlist->items[i].name);
 	}
 	return CLIENT_OK;
 }
 
 void task_download_files(NativeContext *context)
 {
-	int res = parse_playlist(context);
-	if(res == CLIENT_ERROR){
+	Playlist *playlist = parse_playlist(context);
+	if(!playlist){
 		reset(context);
 		return;
 	}
 
-	res = download_files(context);
+	ClientStatus res = download_files(context, playlist);
 	if(res == CLIENT_ERROR){
 		reset(context);
-		return;
 	}
+	playlist_destroy(playlist);
 }
 
 static void* task_flow (void *args)

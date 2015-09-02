@@ -88,7 +88,7 @@ public class MyDownloader {
 			}
 			
 			if (shutdown){
-            	status = DOWNLOADER_STATUS_RECIEVEDATA_TIMEOUT_ERROR;
+            	status = DOWNLOADER_STATUS_OK;
 			}
 			
 	        inputStream.close();
