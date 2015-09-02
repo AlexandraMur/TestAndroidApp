@@ -11,6 +11,9 @@ import android.util.Log;
 public class MyDownloader {
 	private static final int DOWNLOADER_STATUS_ERROR = -1;
 	private static final int DOWNLOADER_STATUS_OK = 0;
+	private static final int DOWNLOADER_STATUS_URL_ERROR = 1;
+	private static final int DOWNLOADER_STATUS_CONNECTION_TIMEOUT_ERROR = 2;
+	private static final int DOWNLOADER_STATUS_RECIEVEDATA_TIMEOUT_ERROR = 3;
 	private static final String TAG = "MyDownloader";
 	private static final int BUFFER_SIZE = 4096;
 
@@ -41,7 +44,7 @@ public class MyDownloader {
 			
 			boolean shutdown = isShutdown(args);
 			if (shutdown) {
-				return DOWNLOADER_STATUS_ERROR;
+				return DOWNLOADER_STATUS_CONNECTION_TIMEOUT_ERROR;
 			}
 			
 			do {
@@ -65,7 +68,6 @@ public class MyDownloader {
 			int bytesRead = 0;
 	        int currentBytes = 0;
 	        byte[] buffer = new byte[BUFFER_SIZE];
-	        status = DOWNLOADER_STATUS_OK;
 	        shutdown = isShutdown(args);
 			while ((counter <= custom_timeout_recieve) && (bytesRead != -1) && !(shutdown)) {	
 				try {
@@ -76,7 +78,7 @@ public class MyDownloader {
 				} catch(Exception e) {
 					Log.e(TAG, e.toString());
 					shutdown = isShutdown(args);
-					status = DOWNLOADER_STATUS_ERROR;
+					status = DOWNLOADER_STATUS_RECIEVEDATA_TIMEOUT_ERROR;
 					counter += timeout;
 					continue;
 				}
@@ -86,22 +88,20 @@ public class MyDownloader {
 			}
 			
 			if (shutdown){
-            	status = DOWNLOADER_STATUS_ERROR;
+            	status = DOWNLOADER_STATUS_RECIEVEDATA_TIMEOUT_ERROR;
 			}
 			
 	        inputStream.close();
 			connection.disconnect();
-			
-		} catch (NullPointerException nullErr){
-			Log.e(TAG, nullErr.toString());
-		} catch (SecurityException secErr){
-			Log.e(TAG, secErr.toString());
 		} catch (MalformedURLException urlErr){
 			Log.e(TAG, urlErr.toString());
+			status = DOWNLOADER_STATUS_URL_ERROR;
 		} catch (IOException ioErr) {
 			Log.e(TAG, ioErr.toString());
+			status = DOWNLOADER_STATUS_ERROR;
         } catch (Exception err) {
         	Log.e(TAG, err.toString());
+        	status = DOWNLOADER_STATUS_ERROR;
         }
 		return status;
 	}

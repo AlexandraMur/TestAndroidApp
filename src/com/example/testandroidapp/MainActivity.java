@@ -27,7 +27,7 @@ public class MainActivity extends Activity{
 		
 		setContentView(com.example.testandroidapp.R.layout.activity_main);
 		View download_button = findViewById(com.example.testandroidapp.R.id.download);
-
+		
 		download_button.setOnClickListener(new View.OnClickListener() {
 			@Override
 			public void onClick(View v) {
