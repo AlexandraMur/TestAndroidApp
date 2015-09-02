@@ -15,6 +15,14 @@
 #define LOGW(fmt, ...) __android_log_print(ANDROID_LOG_WARN,  LOG_TAG, "%s: " fmt, __func__, ## __VA_ARGS__)
 #define LOGE(fmt, ...) __android_log_print(ANDROID_LOG_ERROR, LOG_TAG, "%s: " fmt, __func__, ## __VA_ARGS__)
 
+typedef enum {
+	DOWNLOADER_STATUS_ERROR = -1,
+	DOWNLOADER_STATUS_OK = 0,
+	DOWNLOADER_STATUS_URL_ERROR,
+	DOWNLOADER_STATUS_CONNECTION_TIMEOUT_ERROR,
+	DOWNLOADER_STATUS_RECIEVEDATA_TIMEOUT_ERROR
+} MyDownloaderStatus;
+
 struct HttpClient
 {
 	const IHttpClientCb *cb;
@@ -57,6 +65,22 @@ bool isShutdown (JNIEnv *env, jobject obj, jlong args)
 	HttpClient *client = (HttpClient*)((intptr_t)args);
 	assert(client);
 	return client->shutdown;
+}
+
+static HttpClientStatus MyDownloaderStatus_to_HttpClientStatus(MyDownloaderStatus status)
+{
+	switch(status){
+	case DOWNLOADER_STATUS_OK:
+		return HTTP_CLIENT_OK;
+	case DOWNLOADER_STATUS_URL_ERROR:
+		return HTTP_CLIENT_BAD_URL;
+	case DOWNLOADER_STATUS_CONNECTION_TIMEOUT_ERROR:
+		return HTTP_CLIENT_TIMEOUT_CONNECT;
+	case DOWNLOADER_STATUS_RECIEVEDATA_TIMEOUT_ERROR:
+		return HTTP_CLIENT_TIMEOUT_RECIEVE;
+	default:
+		return HTTP_CLIENT_ERROR;
+	}
 }
 
 static void writeCallback (JNIEnv *env, jobject obj, jbyteArray byte_array, jint size, jlong args)
@@ -127,8 +151,10 @@ HttpClientStatus http_client_download (HttpClient *c, const char *url)
 	}
 
 	LOGI("Start download %s\n", url);
-	result = (*pEnv)->CallIntMethod(pEnv, obj_MyDownloader, g_method_download, jurl, c->timeout_connection, c->timeout_recieve, (jlong)c);
+	MyDownloaderStatus downloader_result = (*pEnv)->CallIntMethod(pEnv, obj_MyDownloader, g_method_download, jurl, c->timeout_connection, c->timeout_recieve, (jlong)c);
 	(*pEnv)->DeleteLocalRef(pEnv, jurl);
+
+	result = MyDownloaderStatus_to_HttpClientStatus(downloader_result);
 
 done:
 	if (obj_MyDownloader) {
