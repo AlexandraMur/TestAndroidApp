@@ -263,6 +263,7 @@ static Playlist* parse_playlist (NativeContext *context)
 		playlist_destroy(playlist);
 		return NULL;
 	}
+	LOGE("return playlist");
 	return playlist;
 }
 
@@ -270,6 +271,7 @@ static int download_files (NativeContext *context, Playlist *playlist)
 {
 	assert(context);
 	assert(playlist);
+
 	for (int i = 0; i < playlist->items_count && !context->shutdown; i++) {
 		char *path = "/sdcard/";
 		size_t length = strlen(playlist->items[i].name) + strlen(path);
@@ -282,6 +284,7 @@ static int download_files (NativeContext *context, Playlist *playlist)
 		snprintf(new_name, length + 1, "%s%s", path, playlist->items[i].name);
 		free(playlist->items[i].name);
 		playlist->items[i].name = new_name;
+		LOGE("downloader_add");
 		downloader_add(context->d, playlist->items[i].uri, playlist->items[i].name);
 	}
 	return CLIENT_OK;
@@ -326,6 +329,7 @@ static void* task_flow (void *args)
 				if (context->state_id != STATE_AVAILABLE){
 					break;
 				}
+				LOGE("*** TASK DOWNLOAD PL ***");
 				context->state_id = STATE_DOWNLOAD_PL;
 				task_download_playlist(context);
 				break;
@@ -333,10 +337,12 @@ static void* task_flow (void *args)
 				if (context->state_id == STATE_DOWNLOAD_FILES){
 					break;
 				}
+				LOGE("*** TASK DOWNLOAD FIELS ***");
 				context->state_id = STATE_DOWNLOAD_FILES;
 				task_download_files(context);
 				break;
 			case TASK_STOP:
+				LOGE("*** TASK STOP ***");
 				if (context->state_id == STATE_AVAILABLE) {
 					break;
 				}

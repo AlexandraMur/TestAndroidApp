@@ -23,8 +23,10 @@ public class MyDownloader {
 	
 	public MyDownloader(){}
 	
-	public int download(String sUrl, int custom_timeout_connection, int custom_timeout_recieve, long args) {
+	public int download(String sUrl, int customTimeoutConnection, int customTimeoutRecieve, long args) {
 		int status = DOWNLOADER_STATUS_ERROR;
+		int customTimeoutConnectionInMillsec = customTimeoutConnection * 1000;
+		int customRecieveConnectionInMillsec = customTimeoutRecieve * 1000;
 		try {
 			URL url = new URL(sUrl);
 			HttpURLConnection connection = (HttpURLConnection)url.openConnection();
@@ -37,7 +39,7 @@ public class MyDownloader {
 			}			
 			
 			int counter = 0;
-			int timeout = 1000 * 2;
+			int timeout = 1000 * 1;
 			connection.setConnectTimeout(timeout);
 			connection.setReadTimeout(timeout);
 			int responseCode = HttpURLConnection.HTTP_OK;
@@ -56,9 +58,10 @@ public class MyDownloader {
 				}
 				counter = 0;
 				responseCode = connection.getResponseCode();
-			} while (responseCode != HttpURLConnection.HTTP_OK && counter <= custom_timeout_connection && !isShutdown(args));
+			} while (responseCode != HttpURLConnection.HTTP_OK && counter <= customTimeoutConnectionInMillsec && !isShutdown(args));
 				
-			if (counter > custom_timeout_connection) {
+			if (counter > customTimeoutConnectionInMillsec) {
+				status = DOWNLOADER_STATUS_CONNECTION_TIMEOUT_ERROR;
 				return status;
 			}
 			
@@ -69,7 +72,7 @@ public class MyDownloader {
 	        int currentBytes = 0;
 	        byte[] buffer = new byte[BUFFER_SIZE];
 	        shutdown = isShutdown(args);
-			while ((counter <= custom_timeout_recieve) && (bytesRead != -1) && !(shutdown)) {	
+			while ((counter <= customRecieveConnectionInMillsec) && (bytesRead != -1) && !(shutdown)) {	
 				try {
 					bytesRead = inputStream.read(buffer);
 					currentBytes += bytesRead;

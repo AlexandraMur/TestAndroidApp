@@ -63,8 +63,8 @@ static char* copy_to_buffer(const char* name_of_file){
 	if(!res){
 		free(buffer);
 		buffer = NULL;
-		goto done;
 	}
+
 done:	
 	if (file) {
 		fclose(file);
