@@ -115,7 +115,7 @@ static void my_complete (Downloader *d, void *args, int status, size_t number_fi
 	NativeContext *context = (NativeContext*)((intptr_t)args);
 	switch (context->state_id){
 		case STATE_DOWNLOAD_PL:
-			if (status == -1){
+			if (status != DOWNLOADER_STATUS_OK){
 				Task *task = create_task(TASK_STOP, (void*)args);
 				if (!task){
 					reset(context);
@@ -131,17 +131,32 @@ static void my_complete (Downloader *d, void *args, int status, size_t number_fi
 			}
 			put_task(task, context);
 			break;
+		case STATE_DOWNLOAD_FILES:
+			if (status != DOWNLOADER_STATUS_OK || (status == DOWNLOADER_STATUS_OK && number_files_in_stack == 0)){
+				Task *task = create_task(TASK_STOP, (void*)args);
+				if (!task){
+					reset(context);
+					break;
+				}
+				put_task(task, context);
+				break;
+			}
+			break;
 	}
 	LOGI("Downloaded");
 }
 
 static void my_progress (Downloader *d, void *args, int64_t curr_size, int64_t total_size)
 {
+	static int prevPercent =-1;
 	if (total_size == 0) {
 		LOGI("%d", curr_size);
 	} else {
 		int currPercent = (curr_size * 100) / total_size;
-		LOGI("%d %%", currPercent);
+		if (prevPercent != currPercent){
+			prevPercent = currPercent;
+			LOGI("%d %%", currPercent);
+		}
 	}
 	return;
 }
@@ -154,7 +169,8 @@ static const IDownloader_Cb my_callbacks =
 
 static void task_download_playlist (NativeContext *context)
 {
-	const char *url = "http://192.168.4.102:80/test2.txt";
+	const char *url = "http://192.168.4.67:8080/test2.txt"; //OK
+	//const char *url = "http://192.168.4.80:8080/test2.txt"; // unavailable server
 	const char *name = "/sdcard/file.json";
 
 	int res = downloader_add(context->d, url, name);
@@ -184,7 +200,7 @@ static jlong nativeInit (JNIEnv *env, jobject obj)
 		free(context);
 		return 0;
 	}
-	int timeout = 1000 * 2;
+	int timeout = 60;
 
 	downloader_set_timeout_connection(context->d, timeout);
 	downloader_set_timeout_recieve(context->d, timeout);

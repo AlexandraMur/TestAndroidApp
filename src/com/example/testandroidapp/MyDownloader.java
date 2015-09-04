@@ -31,6 +31,10 @@ public class MyDownloader {
 			URL url = new URL(sUrl);
 			HttpURLConnection connection = (HttpURLConnection)url.openConnection();
 			
+			int timeout = 1000 * 1;
+			connection.setConnectTimeout(timeout);
+			connection.setReadTimeout(timeout);
+			
 			int contentLength = 0;
 			String values = connection.getHeaderField("Content-Length");
 			
@@ -39,15 +43,14 @@ public class MyDownloader {
 			}			
 			
 			int counter = 0;
-			int timeout = 1000 * 1;
-			connection.setConnectTimeout(timeout);
-			connection.setReadTimeout(timeout);
+			
 			int responseCode = HttpURLConnection.HTTP_OK;
 			
 			boolean shutdown = isShutdown(args);
 			if (shutdown) {
 				return DOWNLOADER_STATUS_CONNECTION_TIMEOUT_ERROR;
 			}
+			
 			
 			do {
 				try {
